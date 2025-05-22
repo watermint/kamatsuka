@@ -1,0 +1,106 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT = _{ 
+    ("#" ~ (!("\n") ~ ANY)*) |
+    ("//" ~ (!("\n") ~ ANY)*) |
+    ("/*" ~ (!"*/" ~ ANY)* ~ "*/")
+}
+
+// Keywords
+keyword_namespace = { "namespace" }
+keyword_import = { "import" }
+keyword_alias = { "alias" }
+keyword_struct = { "struct" }
+keyword_union = { "union" }
+keyword_union_closed = { "union_closed" }
+keyword_route = { "route" }
+keyword_example = { "example" }
+keyword_attrs = { "attrs" }
+keyword_extends = { "extends" }
+keyword_null = { "null" }
+keyword_true = { "true" }
+keyword_false = { "false" }
+
+// Basic elements
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+namespace_path = { identifier ~ ("." ~ identifier)* }
+quoted_string = @{ "\"" ~ (!"\"" ~ (("\\" ~ ANY) | ANY))* ~ "\"" }
+integer = @{ "-"? ~ ASCII_DIGIT+ }
+float = @{ "-"? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+boolean = { keyword_true | keyword_false }
+
+// Values
+value = { 
+    quoted_string |
+    float |
+    integer |
+    boolean |
+    keyword_null |
+    list_value |
+    identifier
+}
+
+list_value = { "[" ~ (value ~ ("," ~ value)*)? ~ "]" }
+
+// Type conditions/parameters
+type_param = { identifier ~ "=" ~ (quoted_string | integer | float | boolean) }
+type_params = { "(" ~ (type_param ~ ("," ~ type_param)*)? ~ ")" }
+
+// Primitive types
+primitive_type = { 
+    "Bytes" | "Boolean" | "Float" | "Integer" | "String" | "Timestamp" | "Void" | "UInt64"
+}
+
+// Generic types
+list_type = { "List" ~ "(" ~ type_spec ~ ("," ~ type_param)* ~ ")" }
+
+// Type specifications
+base_type = { 
+    primitive_type ~ type_params? |
+    list_type |
+    namespace_path
+}
+
+optional_type = { base_type ~ "?" }
+type_spec = { optional_type | base_type }
+
+// Import and namespace
+import_def = { keyword_import ~ identifier }
+namespace_def = { keyword_namespace ~ identifier ~ quoted_string? }
+
+// Alias definitions
+alias_def = { keyword_alias ~ identifier ~ "=" ~ type_spec }
+
+// Field definitions
+field_def = { identifier ~ type_spec ~ quoted_string? }
+
+// Example definitions
+example_item = { identifier ~ "=" ~ value }
+example_def = { keyword_example ~ identifier ~ quoted_string? ~ example_item* }
+
+// Route definitions
+route_params = { "(" ~ (type_spec ~ ("," ~ type_spec)*)? ~ ")" }
+attrs_item = { identifier ~ "=" ~ value }
+attrs_def = { keyword_attrs ~ attrs_item* }
+route_def = { keyword_route ~ identifier ~ route_params ~ quoted_string? ~ attrs_def? }
+
+// Struct definitions
+struct_extends = { keyword_extends ~ namespace_path }
+struct_def = { keyword_struct ~ identifier ~ struct_extends? ~ quoted_string? ~ (field_def | example_def)* }
+
+// Union definitions
+union_variant = { identifier ~ type_spec? ~ quoted_string? }
+union_body = { (union_variant | example_def)* }
+union_def = { (keyword_union | keyword_union_closed) ~ identifier ~ quoted_string? ~ union_body }
+
+// Top-level definitions
+definition = { 
+    namespace_def |
+    import_def |
+    alias_def |
+    struct_def |
+    union_def |
+    route_def
+}
+
+// Main rule
+stone_file = { SOI ~ definition* ~ EOI }

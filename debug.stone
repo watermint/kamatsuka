@@ -1,0 +1,7 @@
+namespace test
+
+struct Simple
+    name String
+    
+    example default
+        name = "test"

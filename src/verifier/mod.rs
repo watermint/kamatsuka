@@ -1,0 +1,493 @@
+use std::collections::HashMap;
+use std::fs;
+
+use anyhow::{Context, Result};
+use colored::*;
+use pest::iterators::Pair;
+use pest::Parser as PestParser;
+use serde::Deserialize;
+
+use crate::{StoneParser, Rule};
+
+#[derive(Debug, Clone)]
+pub struct StoneRoute {
+    pub name: String,
+    pub params: Vec<String>,
+    pub description: Option<String>,
+    pub attrs: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneStruct {
+    pub name: String,
+    pub fields: Vec<StoneField>,
+    pub extends: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneField {
+    pub name: String,
+    pub field_type: String,
+    pub optional: bool,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneUnion {
+    pub name: String,
+    pub variants: Vec<StoneVariant>,
+    pub closed: bool,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneVariant {
+    pub name: String,
+    pub variant_type: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneNamespace {
+    pub name: String,
+    pub description: Option<String>,
+    pub routes: Vec<StoneRoute>,
+    pub structs: Vec<StoneStruct>,
+    pub unions: Vec<StoneUnion>,
+    pub aliases: HashMap<String, String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenApiSpec {
+    pub openapi: String,
+    pub info: OpenApiInfo,
+    pub paths: HashMap<String, HashMap<String, OpenApiOperation>>,
+    pub components: Option<OpenApiComponents>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenApiInfo {
+    pub title: String,
+    pub description: Option<String>,
+    pub version: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenApiOperation {
+    #[serde(rename = "operationId")]
+    pub operation_id: Option<String>,
+    pub summary: Option<String>,
+    pub description: Option<String>,
+    #[serde(rename = "requestBody")]
+    pub request_body: Option<OpenApiRequestBody>,
+    pub responses: HashMap<String, OpenApiResponse>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenApiRequestBody {
+    pub required: Option<bool>,
+    pub content: HashMap<String, OpenApiMediaType>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenApiMediaType {
+    pub schema: Option<OpenApiSchema>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenApiResponse {
+    pub description: String,
+    pub content: Option<HashMap<String, OpenApiMediaType>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenApiComponents {
+    pub schemas: Option<HashMap<String, OpenApiSchema>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum OpenApiSchema {
+    Reference {
+        #[serde(rename = "$ref")]
+        reference: String,
+    },
+    Object {
+        #[serde(rename = "type")]
+        schema_type: Option<String>,
+        properties: Option<HashMap<String, OpenApiSchema>>,
+        required: Option<Vec<String>>,
+        #[serde(rename = "allOf")]
+        all_of: Option<Vec<OpenApiSchema>>,
+        items: Option<Box<OpenApiSchema>>,
+        #[serde(rename = "enum")]
+        enum_values: Option<Vec<serde_json::Value>>,
+    },
+}
+
+#[derive(Debug)]
+pub enum ComparisonResult {
+    Match,
+    Missing(String),
+    Extra(String),
+    Mismatch(String),
+}
+
+pub fn verify_stone_openapi(stone_path: &str, openapi_path: &str, verbose: bool) -> Result<Vec<ComparisonResult>> {
+    // Parse Stone DSL
+    let stone_content = fs::read_to_string(stone_path)
+        .with_context(|| format!("Failed to read Stone file: {}", stone_path))?;
+    
+    let stone_namespace = parse_stone_dsl(&stone_content)
+        .with_context(|| "Failed to parse Stone DSL")?;
+    
+    // Parse OpenAPI
+    let openapi_content = fs::read_to_string(openapi_path)
+        .with_context(|| format!("Failed to read OpenAPI file: {}", openapi_path))?;
+    
+    let openapi_spec: OpenApiSpec = serde_yaml::from_str(&openapi_content)
+        .with_context(|| "Failed to parse OpenAPI YAML")?;
+    
+    // Compare
+    let results = compare_specifications(&stone_namespace, &openapi_spec, verbose);
+    
+    Ok(results)
+}
+
+pub fn parse_stone_dsl(content: &str) -> Result<StoneNamespace> {
+    let pairs = StoneParser::parse(Rule::stone_file, content)
+        .map_err(|e| anyhow::anyhow!("Parse error: {}", e))?;
+    
+    let mut namespace = StoneNamespace {
+        name: String::new(),
+        description: None,
+        routes: Vec::new(),
+        structs: Vec::new(),
+        unions: Vec::new(),
+        aliases: HashMap::new(),
+    };
+    
+    for pair in pairs {
+        for inner_pair in pair.into_inner() {
+            match inner_pair.as_rule() {
+                Rule::namespace_def => {
+                    parse_namespace_def(inner_pair, &mut namespace)?;
+                }
+                Rule::route_def => {
+                    let route = parse_route_def(inner_pair)?;
+                    namespace.routes.push(route);
+                }
+                Rule::struct_def => {
+                    let struct_def = parse_struct_def(inner_pair)?;
+                    namespace.structs.push(struct_def);
+                }
+                Rule::union_def => {
+                    let union_def = parse_union_def(inner_pair)?;
+                    namespace.unions.push(union_def);
+                }
+                Rule::alias_def => {
+                    let (name, alias_type) = parse_alias_def(inner_pair)?;
+                    namespace.aliases.insert(name, alias_type);
+                }
+                _ => {}
+            }
+        }
+    }
+    
+    Ok(namespace)
+}
+
+fn parse_namespace_def(pair: Pair<Rule>, namespace: &mut StoneNamespace) -> Result<()> {
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                namespace.name = inner_pair.as_str().to_string();
+            }
+            Rule::quoted_string => {
+                namespace.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn parse_route_def(pair: Pair<Rule>) -> Result<StoneRoute> {
+    let mut route = StoneRoute {
+        name: String::new(),
+        params: Vec::new(),
+        description: None,
+        attrs: HashMap::new(),
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                route.name = inner_pair.as_str().to_string();
+            }
+            Rule::route_params => {
+                for param_pair in inner_pair.into_inner() {
+                    if let Rule::type_spec = param_pair.as_rule() {
+                        route.params.push(param_pair.as_str().to_string());
+                    }
+                }
+            }
+            Rule::quoted_string => {
+                route.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            }
+            Rule::attrs_def => {
+                // Parse attributes block
+                for _attr_pair in inner_pair.into_inner() {
+                    // Parse key-value pairs - TODO: implement
+                }
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(route)
+}
+
+fn parse_struct_def(pair: Pair<Rule>) -> Result<StoneStruct> {
+    let mut struct_def = StoneStruct {
+        name: String::new(),
+        fields: Vec::new(),
+        extends: None,
+        description: None,
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                struct_def.name = inner_pair.as_str().to_string();
+            }
+            Rule::quoted_string => {
+                struct_def.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            }
+            Rule::struct_extends => {
+                for extend_pair in inner_pair.into_inner() {
+                    if let Rule::namespace_path = extend_pair.as_rule() {
+                        struct_def.extends = Some(extend_pair.as_str().to_string());
+                    }
+                }
+            }
+            Rule::field_def => {
+                let field = parse_field_def(inner_pair)?;
+                struct_def.fields.push(field);
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(struct_def)
+}
+
+fn parse_union_def(pair: Pair<Rule>) -> Result<StoneUnion> {
+    let mut union_def = StoneUnion {
+        name: String::new(),
+        variants: Vec::new(),
+        closed: false,
+        description: None,
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::keyword_union_closed => {
+                union_def.closed = true;
+            }
+            Rule::identifier => {
+                union_def.name = inner_pair.as_str().to_string();
+            }
+            Rule::quoted_string => {
+                union_def.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            }
+            Rule::union_variant => {
+                let variant = parse_union_variant(inner_pair)?;
+                union_def.variants.push(variant);
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(union_def)
+}
+
+fn parse_field_def(pair: Pair<Rule>) -> Result<StoneField> {
+    let mut field = StoneField {
+        name: String::new(),
+        field_type: String::new(),
+        optional: false,
+        description: None,
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                field.name = inner_pair.as_str().to_string();
+            }
+            Rule::type_spec => {
+                field.field_type = inner_pair.as_str().to_string();
+                field.optional = field.field_type.ends_with('?');
+            }
+            Rule::quoted_string => {
+                field.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(field)
+}
+
+fn parse_union_variant(pair: Pair<Rule>) -> Result<StoneVariant> {
+    let mut variant = StoneVariant {
+        name: String::new(),
+        variant_type: None,
+        description: None,
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                variant.name = inner_pair.as_str().to_string();
+            }
+            Rule::type_spec => {
+                variant.variant_type = Some(inner_pair.as_str().to_string());
+            }
+            Rule::quoted_string => {
+                variant.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(variant)
+}
+
+fn parse_alias_def(pair: Pair<Rule>) -> Result<(String, String)> {
+    let mut name = String::new();
+    let mut alias_type = String::new();
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                name = inner_pair.as_str().to_string();
+            }
+            Rule::type_spec => {
+                alias_type = inner_pair.as_str().to_string();
+            }
+            _ => {}
+        }
+    }
+    
+    Ok((name, alias_type))
+}
+
+fn compare_specifications(
+    stone: &StoneNamespace,
+    openapi: &OpenApiSpec,
+    verbose: bool,
+) -> Vec<ComparisonResult> {
+    let mut results = Vec::new();
+    
+    // Compare routes vs paths
+    for stone_route in &stone.routes {
+        let expected_path = format!("/{}/{}", stone.name, stone_route.name);
+        
+        if let Some(path_methods) = openapi.paths.get(&expected_path) {
+            if path_methods.contains_key("post") {
+                results.push(ComparisonResult::Match);
+                if verbose {
+                    println!("✓ Route {} found in OpenAPI", stone_route.name.green());
+                }
+            } else {
+                results.push(ComparisonResult::Mismatch(
+                    format!("Route {} found but no POST method", stone_route.name)
+                ));
+            }
+        } else {
+            results.push(ComparisonResult::Missing(
+                format!("Route {} not found in OpenAPI", stone_route.name)
+            ));
+        }
+    }
+    
+    // Compare structs vs schemas
+    if let Some(schemas) = &openapi.components.as_ref().and_then(|c| c.schemas.as_ref()) {
+        for stone_struct in &stone.structs {
+            if schemas.contains_key(&stone_struct.name) {
+                results.push(ComparisonResult::Match);
+                if verbose {
+                    println!("✓ Struct {} found in OpenAPI", stone_struct.name.green());
+                }
+            } else {
+                results.push(ComparisonResult::Missing(
+                    format!("Struct {} not found in OpenAPI schemas", stone_struct.name)
+                ));
+            }
+        }
+    }
+    
+    // Check for extra OpenAPI paths not in Stone
+    for (path, _) in &openapi.paths {
+        let path_parts: Vec<&str> = path.trim_start_matches('/').split('/').collect();
+        if path_parts.len() >= 2 {
+            let namespace_part = path_parts[0];
+            let route_part = path_parts[1];
+            
+            if namespace_part == stone.name {
+                let found = stone.routes.iter().any(|r| r.name == route_part);
+                if !found {
+                    results.push(ComparisonResult::Extra(
+                        format!("OpenAPI path {} not found in Stone", path)
+                    ));
+                }
+            }
+        }
+    }
+    
+    results
+}
+
+pub fn report_results(results: &[ComparisonResult]) {
+    let mut matches = 0;
+    let mut mismatches = 0;
+    let mut missing = 0;
+    let mut extra = 0;
+    
+    println!("{}", "Comparison Results:".yellow().bold());
+    println!();
+    
+    for result in results {
+        match result {
+            ComparisonResult::Match => {
+                matches += 1;
+            }
+            ComparisonResult::Missing(msg) => {
+                missing += 1;
+                println!("{} {}", "MISSING:".red().bold(), msg);
+            }
+            ComparisonResult::Extra(msg) => {
+                extra += 1;
+                println!("{} {}", "EXTRA:".blue().bold(), msg);
+            }
+            ComparisonResult::Mismatch(msg) => {
+                mismatches += 1;
+                println!("{} {}", "MISMATCH:".yellow().bold(), msg);
+            }
+        }
+    }
+    
+    println!();
+    println!("{}", "Summary:".green().bold());
+    println!("  {} Matches", matches.to_string().green());
+    println!("  {} Missing", missing.to_string().red());
+    println!("  {} Extra", extra.to_string().blue());
+    println!("  {} Mismatches", mismatches.to_string().yellow());
+    
+    if missing == 0 && extra == 0 && mismatches == 0 {
+        println!();
+        println!("{}", "✓ All checks passed!".green().bold());
+    }
+}

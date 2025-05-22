@@ -1,0 +1,484 @@
+openapi: 3.0.3
+info:
+  title: Dropbox Users API
+  description: "This namespace contains endpoints and data types for user management."
+  version: "2.0"
+  contact:
+    name: Dropbox API
+    url: https://www.dropbox.com/developers
+servers:
+  - url: https://api.dropboxapi.com/2
+    description: Dropbox API v2
+
+paths:
+  /users/get_account:
+    post:
+      summary: Get information about a user's account
+      operationId: getAccount
+      security:
+        - oauth2: ["sharing.read"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAccountArg'
+            example:
+              account_id: "dbid:AAH4f99T0taONIb-OurWxbNQ6ywGRopQngc"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicAccount'
+        '400':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAccountError'
+
+  /users/get_current_account:
+    post:
+      summary: Get information about the current user's account
+      operationId: getCurrentAccount
+      security:
+        - oauth2: ["account_info.read"]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FullAccount'
+
+  /users/get_space_usage:
+    post:
+      summary: Get the space usage information for the current user's account
+      operationId: getSpaceUsage
+      security:
+        - oauth2: ["account_info.read"]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpaceUsage'
+
+  /users/get_account_batch:
+    post:
+      summary: Get information about multiple user accounts
+      description: "At most 300 accounts may be queried per request."
+      operationId: getAccountBatch
+      security:
+        - oauth2: ["sharing.read"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAccountBatchArg'
+            example:
+              account_ids: 
+                - "dbid:AAH4f99T0taONIb-OurWxbNQ6ywGRopQngc"
+                - "dbid:AAH1Vcz-DVoRDeixtr_OA8oUGgiqhs4XPOQ"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAccountBatchResult'
+        '400':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAccountBatchError'
+
+  /users/features/get_values:
+    post:
+      summary: Get a list of feature values that may be configured for the current account
+      operationId: getFeaturesValues
+      security:
+        - oauth2: ["account_info.read"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserFeaturesGetValuesBatchArg'
+            example:
+              features: ["paper_as_files", "file_locking"]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFeaturesGetValuesBatchResult'
+        '400':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFeaturesGetValuesBatchError'
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://www.dropbox.com/oauth2/authorize
+          tokenUrl: https://api.dropboxapi.com/oauth2/token
+          scopes:
+            account_info.read: Read access to account information
+            sharing.read: Read access to sharing information
+
+  schemas:
+    AccountId:
+      type: string
+      minLength: 40
+      maxLength: 40
+      description: "A user's account identifier"
+
+    AccountType:
+      type: string
+      enum: [basic, pro, business]
+      description: "What type of account this user has"
+
+    GetAccountArg:
+      type: object
+      required: [account_id]
+      properties:
+        account_id:
+          $ref: '#/components/schemas/AccountId'
+
+    GetAccountError:
+      type: object
+      properties:
+        error_summary:
+          type: string
+        error:
+          type: object
+          properties:
+            ".tag":
+              type: string
+              enum: [no_account]
+            description:
+              type: string
+              description: "The specified account_id does not exist"
+
+    Name:
+      type: object
+      required: [given_name, surname, familiar_name, display_name, abbreviated_name]
+      properties:
+        given_name:
+          type: string
+          description: "Also known as a first name"
+        surname:
+          type: string
+          description: "Also known as a last name or family name"
+        familiar_name:
+          type: string
+          description: "Locale-dependent name. In the US, a person's familiar name is their given_name, but elsewhere, it could be any combination of a person's given_name and surname"
+        display_name:
+          type: string
+          description: "A name that can be used directly to represent the name of a user's Dropbox account"
+        abbreviated_name:
+          type: string
+          description: "An abbreviated form of the person's name. Their initials in most locales"
+
+    Account:
+      type: object
+      required: [account_id, name, email, email_verified, disabled]
+      properties:
+        account_id:
+          $ref: '#/components/schemas/AccountId'
+        name:
+          $ref: '#/components/schemas/Name'
+        email:
+          type: string
+          description: "The user's email address. Do not rely on this without checking the email_verified field"
+        email_verified:
+          type: boolean
+          description: "Whether the user has verified their email address"
+        profile_photo_url:
+          type: string
+          nullable: true
+          description: "URL for the photo representing the user, if one is set"
+        disabled:
+          type: boolean
+          description: "Whether the user has been disabled"
+
+    BasicAccount:
+      allOf:
+        - $ref: '#/components/schemas/Account'
+        - type: object
+          required: [is_teammate]
+          properties:
+            is_teammate:
+              type: boolean
+              description: "Whether this user is a teammate of the current user"
+            team_member_id:
+              type: string
+              nullable: true
+              description: "The user's unique team member id"
+
+    Team:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: "The team's unique ID"
+        name:
+          type: string
+          description: "The name of the team"
+
+    FullTeam:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          required: [sharing_policies, office_addin_policy]
+          properties:
+            sharing_policies:
+              type: object
+              description: "Team policies governing sharing"
+            office_addin_policy:
+              type: string
+              description: "Team policy governing the use of the Office Add-In"
+
+    RootInfo:
+      type: object
+      required: [root_namespace_id, home_namespace_id]
+      properties:
+        ".tag":
+          type: string
+          enum: [team, user]
+        root_namespace_id:
+          type: string
+          description: "The namespace ID for user's root namespace"
+        home_namespace_id:
+          type: string
+          description: "The namespace ID for user's home namespace"
+        home_path:
+          type: string
+          description: "The path for user's home directory under the shared team root"
+
+    FullAccount:
+      allOf:
+        - $ref: '#/components/schemas/Account'
+        - type: object
+          required: [locale, referral_link, is_paired, account_type, root_info]
+          properties:
+            country:
+              type: string
+              minLength: 2
+              maxLength: 2
+              nullable: true
+              description: "The user's two-letter country code, if available"
+            locale:
+              type: string
+              minLength: 2
+              description: "The language that the user specified"
+            referral_link:
+              type: string
+              description: "The user's referral link"
+            team:
+              $ref: '#/components/schemas/FullTeam'
+              nullable: true
+              description: "If this account is a member of a team, information about that team"
+            team_member_id:
+              type: string
+              nullable: true
+              description: "This account's unique team member id"
+            is_paired:
+              type: boolean
+              description: "Whether the user has a personal and work account"
+            account_type:
+              $ref: '#/components/schemas/AccountType'
+            root_info:
+              $ref: '#/components/schemas/RootInfo'
+
+    SpaceUsage:
+      type: object
+      required: [used, allocation]
+      properties:
+        used:
+          type: integer
+          format: int64
+          description: "The user's total space usage (bytes)"
+        allocation:
+          $ref: '#/components/schemas/SpaceAllocation'
+
+    SpaceAllocation:
+      type: object
+      required: [".tag"]
+      properties:
+        ".tag":
+          type: string
+          enum: [individual, team]
+      discriminator:
+        propertyName: ".tag"
+        mapping:
+          individual: '#/components/schemas/IndividualSpaceAllocation'
+          team: '#/components/schemas/TeamSpaceAllocation'
+
+    IndividualSpaceAllocation:
+      allOf:
+        - $ref: '#/components/schemas/SpaceAllocation'
+        - type: object
+          required: [allocated]
+          properties:
+            allocated:
+              type: integer
+              format: int64
+              description: "The total space allocated to the user's account (bytes)"
+
+    TeamSpaceAllocation:
+      allOf:
+        - $ref: '#/components/schemas/SpaceAllocation'
+        - type: object
+          required: [used, allocated, user_within_team_space_allocated, user_within_team_space_limit_type, user_within_team_space_used_cached]
+          properties:
+            used:
+              type: integer
+              format: int64
+              description: "The total space currently used by the user's team (bytes)"
+            allocated:
+              type: integer
+              format: int64
+              description: "The total space allocated to the user's team (bytes)"
+            user_within_team_space_allocated:
+              type: integer
+              format: int64
+              description: "The total space allocated to the user within its team allocated space"
+            user_within_team_space_limit_type:
+              type: string
+              enum: [off, alert_only, stop_sync]
+              description: "The type of the space limit imposed on the team member"
+            user_within_team_space_used_cached:
+              type: integer
+              format: int64
+              description: "An accurate cached calculation of a team member's total space usage (bytes)"
+
+    GetAccountBatchArg:
+      type: object
+      required: [account_ids]
+      properties:
+        account_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountId'
+          minItems: 1
+          maxItems: 300
+          description: "List of user account identifiers. Should not contain any duplicate account IDs"
+
+    GetAccountBatchResult:
+      type: array
+      items:
+        $ref: '#/components/schemas/BasicAccount'
+
+    GetAccountBatchError:
+      type: object
+      properties:
+        error_summary:
+          type: string
+        error:
+          type: object
+          properties:
+            ".tag":
+              type: string
+              enum: [no_account]
+            no_account:
+              $ref: '#/components/schemas/AccountId'
+              description: "An account ID that does not exist"
+
+    UserFeature:
+      type: string
+      enum: [paper_as_files, file_locking]
+      description: "A set of features that a Dropbox User account may have configured"
+
+    UserFeatureValue:
+      type: object
+      required: [".tag"]
+      properties:
+        ".tag":
+          type: string
+          enum: [paper_as_files, file_locking]
+      discriminator:
+        propertyName: ".tag"
+        mapping:
+          paper_as_files: '#/components/schemas/PaperAsFilesValue'
+          file_locking: '#/components/schemas/FileLockingValue'
+
+    PaperAsFilesValue:
+      allOf:
+        - $ref: '#/components/schemas/UserFeatureValue'
+        - type: object
+          required: [enabled]
+          properties:
+            enabled:
+              type: boolean
+              description: "When true, Paper docs are accessible in Dropbox with .paper extension"
+
+    FileLockingValue:
+      allOf:
+        - $ref: '#/components/schemas/UserFeatureValue'
+        - type: object
+          required: [enabled]
+          properties:
+            enabled:
+              type: boolean
+              description: "When true, the user can lock files in shared directories"
+
+    UserFeaturesGetValuesBatchArg:
+      type: object
+      required: [features]
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserFeature'
+          minItems: 1
+          description: "A list of features. If the list is empty, this route will return an error"
+
+    UserFeaturesGetValuesBatchResult:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserFeatureValue'
+
+    UserFeaturesGetValuesBatchError:
+      type: object
+      properties:
+        error_summary:
+          type: string
+        error:
+          type: object
+          properties:
+            ".tag":
+              type: string
+              enum: [empty_features_list]
+            description:
+              type: string
+              description: "At least one UserFeature must be included in the features list"

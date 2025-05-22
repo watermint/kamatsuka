@@ -1,0 +1,19 @@
+# Alloy files
+*.als~
+*.xml
+
+# IDE files
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+
+
+# Cargo
+target/

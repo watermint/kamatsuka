@@ -1,0 +1,981 @@
+use std::collections::HashMap;
+use std::fs;
+
+use anyhow::{Context, Result};
+use indexmap::IndexMap;
+use pest::iterators::Pair;
+use pest::Parser as PestParser;
+use serde::Serialize;
+
+use crate::{StoneParser, Rule};
+
+#[derive(Debug, Clone)]
+pub struct StoneRoute {
+    pub name: String,
+    pub params: Vec<String>,
+    pub description: Option<String>,
+    pub attrs: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneStruct {
+    pub name: String,
+    pub fields: Vec<StoneField>,
+    pub extends: Option<String>,
+    pub description: Option<String>,
+    pub examples: Vec<StoneExample>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneField {
+    pub name: String,
+    pub field_type: String,
+    pub optional: bool,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneUnion {
+    pub name: String,
+    pub variants: Vec<StoneVariant>,
+    pub closed: bool,
+    pub description: Option<String>,
+    pub examples: Vec<StoneExample>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneVariant {
+    pub name: String,
+    pub variant_type: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneExample {
+    pub name: String,
+    pub description: Option<String>,
+    pub fields: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoneNamespace {
+    pub name: String,
+    pub description: Option<String>,
+    pub routes: Vec<StoneRoute>,
+    pub structs: Vec<StoneStruct>,
+    pub unions: Vec<StoneUnion>,
+    pub aliases: HashMap<String, String>,
+    pub imports: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiSpec {
+    pub openapi: String,
+    pub info: OpenApiInfo,
+    pub servers: Vec<OpenApiServer>,
+    pub paths: IndexMap<String, IndexMap<String, OpenApiOperation>>,
+    pub components: OpenApiComponents,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiInfo {
+    pub title: String,
+    pub description: Option<String>,
+    pub version: String,
+    pub contact: OpenApiContact,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiContact {
+    pub name: String,
+    pub url: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiServer {
+    pub url: String,
+    pub description: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiOperation {
+    pub summary: String,
+    #[serde(rename = "operationId")]
+    pub operation_id: String,
+    pub security: Vec<IndexMap<String, Vec<String>>>,
+    #[serde(rename = "requestBody", skip_serializing_if = "Option::is_none")]
+    pub request_body: Option<OpenApiRequestBody>,
+    pub responses: IndexMap<String, OpenApiResponse>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiRequestBody {
+    pub required: bool,
+    pub content: IndexMap<String, OpenApiMediaType>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiMediaType {
+    pub schema: OpenApiSchemaRef,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub example: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiResponse {
+    pub description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<IndexMap<String, OpenApiMediaType>>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiComponents {
+    #[serde(rename = "securitySchemes")]
+    pub security_schemes: IndexMap<String, OpenApiSecurityScheme>,
+    pub schemas: IndexMap<String, OpenApiSchema>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiSecurityScheme {
+    #[serde(rename = "type")]
+    pub scheme_type: String,
+    pub flows: OpenApiOAuthFlows,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiOAuthFlows {
+    #[serde(rename = "authorizationCode")]
+    pub authorization_code: OpenApiOAuthFlow,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiOAuthFlow {
+    #[serde(rename = "authorizationUrl")]
+    pub authorization_url: String,
+    #[serde(rename = "tokenUrl")]
+    pub token_url: String,
+    pub scopes: IndexMap<String, String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum OpenApiSchemaRef {
+    Reference { #[serde(rename = "$ref")] reference: String },
+    Inline(OpenApiSchema),
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiSchema {
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub schema_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub properties: Option<IndexMap<String, OpenApiSchemaRef>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required: Option<Vec<String>>,
+    #[serde(rename = "allOf", skip_serializing_if = "Option::is_none")]
+    pub all_of: Option<Vec<OpenApiSchemaRef>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items: Option<Box<OpenApiSchemaRef>>,
+    #[serde(rename = "enum", skip_serializing_if = "Option::is_none")]
+    pub enum_values: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+    #[serde(rename = "minLength", skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<i32>,
+    #[serde(rename = "maxLength", skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nullable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discriminator: Option<OpenApiDiscriminator>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OpenApiDiscriminator {
+    #[serde(rename = "propertyName")]
+    pub property_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mapping: Option<IndexMap<String, String>>,
+}
+
+pub fn convert_stone_to_openapi(stone_path: &str, base_url: &str) -> Result<OpenApiSpec> {
+    let stone_content = fs::read_to_string(stone_path)
+        .with_context(|| format!("Failed to read Stone file: {}", stone_path))?;
+    
+    let stone_namespace = parse_stone_dsl(&stone_content)
+        .with_context(|| "Failed to parse Stone DSL")?;
+    
+    convert_to_openapi(&stone_namespace, base_url)
+}
+
+pub fn parse_stone_dsl(content: &str) -> Result<StoneNamespace> {
+    let pairs = StoneParser::parse(Rule::stone_file, content)
+        .map_err(|e| anyhow::anyhow!("Parse error: {}", e))?;
+    
+    let mut namespace = StoneNamespace {
+        name: String::new(),
+        description: None,
+        routes: Vec::new(),
+        structs: Vec::new(),
+        unions: Vec::new(),
+        aliases: HashMap::new(),
+        imports: Vec::new(),
+    };
+    
+    for pair in pairs {
+        for inner_pair in pair.into_inner() {
+            match inner_pair.as_rule() {
+                Rule::namespace_def => {
+                    parse_namespace_def(inner_pair, &mut namespace)?;
+                }
+                Rule::import_def => {
+                    let import = parse_import_def(inner_pair)?;
+                    namespace.imports.push(import);
+                }
+                Rule::route_def => {
+                    let route = parse_route_def(inner_pair)?;
+                    namespace.routes.push(route);
+                }
+                Rule::struct_def => {
+                    let struct_def = parse_struct_def(inner_pair)?;
+                    namespace.structs.push(struct_def);
+                }
+                Rule::union_def => {
+                    let union_def = parse_union_def(inner_pair)?;
+                    namespace.unions.push(union_def);
+                }
+                Rule::alias_def => {
+                    let (name, alias_type) = parse_alias_def(inner_pair)?;
+                    namespace.aliases.insert(name, alias_type);
+                }
+                _ => {}
+            }
+        }
+    }
+    
+    Ok(namespace)
+}
+
+fn parse_namespace_def(pair: Pair<Rule>, namespace: &mut StoneNamespace) -> Result<()> {
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                namespace.name = inner_pair.as_str().to_string();
+            }
+            Rule::quoted_string => {
+                namespace.description = Some(parse_quoted_string(inner_pair.as_str()));
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn parse_import_def(pair: Pair<Rule>) -> Result<String> {
+    for inner_pair in pair.into_inner() {
+        if let Rule::identifier = inner_pair.as_rule() {
+            return Ok(inner_pair.as_str().to_string());
+        }
+    }
+    Err(anyhow::anyhow!("Invalid import definition"))
+}
+
+fn parse_route_def(pair: Pair<Rule>) -> Result<StoneRoute> {
+    let mut route = StoneRoute {
+        name: String::new(),
+        params: Vec::new(),
+        description: None,
+        attrs: HashMap::new(),
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                route.name = inner_pair.as_str().to_string();
+            }
+            Rule::route_params => {
+                for param_pair in inner_pair.into_inner() {
+                    if let Rule::type_spec = param_pair.as_rule() {
+                        route.params.push(param_pair.as_str().to_string());
+                    }
+                }
+            }
+            Rule::quoted_string => {
+                route.description = Some(parse_quoted_string(inner_pair.as_str()));
+            }
+            Rule::attrs_def => {
+                route.attrs = parse_attrs_def(inner_pair)?;
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(route)
+}
+
+fn parse_attrs_def(pair: Pair<Rule>) -> Result<HashMap<String, String>> {
+    let mut attrs = HashMap::new();
+    
+    for inner_pair in pair.into_inner() {
+        if let Rule::attrs_item = inner_pair.as_rule() {
+            let mut key = String::new();
+            let mut value = String::new();
+            
+            for attr_pair in inner_pair.into_inner() {
+                match attr_pair.as_rule() {
+                    Rule::identifier => {
+                        key = attr_pair.as_str().to_string();
+                    }
+                    Rule::value => {
+                        value = attr_pair.as_str().to_string();
+                    }
+                    _ => {}
+                }
+            }
+            
+            if !key.is_empty() && !value.is_empty() {
+                attrs.insert(key, value);
+            }
+        }
+    }
+    
+    Ok(attrs)
+}
+
+fn parse_struct_def(pair: Pair<Rule>) -> Result<StoneStruct> {
+    let mut struct_def = StoneStruct {
+        name: String::new(),
+        fields: Vec::new(),
+        extends: None,
+        description: None,
+        examples: Vec::new(),
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                struct_def.name = inner_pair.as_str().to_string();
+            }
+            Rule::struct_extends => {
+                for extend_pair in inner_pair.into_inner() {
+                    if let Rule::namespace_path = extend_pair.as_rule() {
+                        struct_def.extends = Some(extend_pair.as_str().to_string());
+                    }
+                }
+            }
+            Rule::quoted_string => {
+                struct_def.description = Some(parse_quoted_string(inner_pair.as_str()));
+            }
+            Rule::field_def => {
+                let field = parse_field_def(inner_pair)?;
+                struct_def.fields.push(field);
+            }
+            Rule::example_def => {
+                let example = parse_example_def(inner_pair)?;
+                struct_def.examples.push(example);
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(struct_def)
+}
+
+fn parse_union_def(pair: Pair<Rule>) -> Result<StoneUnion> {
+    let mut union_def = StoneUnion {
+        name: String::new(),
+        variants: Vec::new(),
+        closed: false,
+        description: None,
+        examples: Vec::new(),
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::keyword_union_closed => {
+                union_def.closed = true;
+            }
+            Rule::identifier => {
+                union_def.name = inner_pair.as_str().to_string();
+            }
+            Rule::quoted_string => {
+                union_def.description = Some(parse_quoted_string(inner_pair.as_str()));
+            }
+            Rule::union_variant => {
+                let variant = parse_union_variant(inner_pair)?;
+                union_def.variants.push(variant);
+            }
+            Rule::example_def => {
+                let example = parse_example_def(inner_pair)?;
+                union_def.examples.push(example);
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(union_def)
+}
+
+fn parse_field_def(pair: Pair<Rule>) -> Result<StoneField> {
+    let mut field = StoneField {
+        name: String::new(),
+        field_type: String::new(),
+        optional: false,
+        description: None,
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                field.name = inner_pair.as_str().to_string();
+            }
+            Rule::type_spec => {
+                field.field_type = inner_pair.as_str().to_string();
+                field.optional = field.field_type.ends_with('?');
+            }
+            Rule::quoted_string => {
+                field.description = Some(parse_quoted_string(inner_pair.as_str()));
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(field)
+}
+
+fn parse_union_variant(pair: Pair<Rule>) -> Result<StoneVariant> {
+    let mut variant = StoneVariant {
+        name: String::new(),
+        variant_type: None,
+        description: None,
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                variant.name = inner_pair.as_str().to_string();
+            }
+            Rule::type_spec => {
+                variant.variant_type = Some(inner_pair.as_str().to_string());
+            }
+            Rule::quoted_string => {
+                variant.description = Some(parse_quoted_string(inner_pair.as_str()));
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(variant)
+}
+
+fn parse_example_def(pair: Pair<Rule>) -> Result<StoneExample> {
+    let mut example = StoneExample {
+        name: String::new(),
+        description: None,
+        fields: HashMap::new(),
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                example.name = inner_pair.as_str().to_string();
+            }
+            Rule::quoted_string => {
+                example.description = Some(parse_quoted_string(inner_pair.as_str()));
+            }
+            Rule::example_item => {
+                let (key, value) = parse_example_item(inner_pair)?;
+                example.fields.insert(key, value);
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(example)
+}
+
+fn parse_example_item(pair: Pair<Rule>) -> Result<(String, serde_json::Value)> {
+    let mut key = String::new();
+    let mut value = serde_json::Value::Null;
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                key = inner_pair.as_str().to_string();
+            }
+            Rule::value => {
+                value = parse_value_to_json(inner_pair)?;
+            }
+            _ => {}
+        }
+    }
+    
+    Ok((key, value))
+}
+
+fn parse_alias_def(pair: Pair<Rule>) -> Result<(String, String)> {
+    let mut name = String::new();
+    let mut alias_type = String::new();
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identifier => {
+                name = inner_pair.as_str().to_string();
+            }
+            Rule::type_spec => {
+                alias_type = inner_pair.as_str().to_string();
+            }
+            _ => {}
+        }
+    }
+    
+    Ok((name, alias_type))
+}
+
+fn parse_quoted_string(s: &str) -> String {
+    s.trim_matches('"').replace("\\\"", "\"").to_string()
+}
+
+fn parse_value_to_json(pair: Pair<Rule>) -> Result<serde_json::Value> {
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::quoted_string => {
+                return Ok(serde_json::Value::String(parse_quoted_string(inner_pair.as_str())));
+            }
+            Rule::integer => {
+                let int_val: i64 = inner_pair.as_str().parse()?;
+                return Ok(serde_json::Value::Number(serde_json::Number::from(int_val)));
+            }
+            Rule::float => {
+                let float_val: f64 = inner_pair.as_str().parse()?;
+                return Ok(serde_json::Value::Number(serde_json::Number::from_f64(float_val).unwrap()));
+            }
+            Rule::boolean => {
+                let bool_val = inner_pair.as_str() == "true";
+                return Ok(serde_json::Value::Bool(bool_val));
+            }
+            Rule::keyword_null => {
+                return Ok(serde_json::Value::Null);
+            }
+            Rule::list_value => {
+                let mut list = Vec::new();
+                for item_pair in inner_pair.into_inner() {
+                    if let Rule::value = item_pair.as_rule() {
+                        list.push(parse_value_to_json(item_pair)?);
+                    }
+                }
+                return Ok(serde_json::Value::Array(list));
+            }
+            Rule::identifier => {
+                return Ok(serde_json::Value::String(inner_pair.as_str().to_string()));
+            }
+            _ => {}
+        }
+    }
+    Ok(serde_json::Value::Null)
+}
+
+pub fn convert_to_openapi(namespace: &StoneNamespace, base_url: &str) -> Result<OpenApiSpec> {
+    let mut paths = IndexMap::new();
+    let mut schemas = IndexMap::new();
+    
+    // Convert routes to paths
+    for route in &namespace.routes {
+        let path = format!("/{}/{}", namespace.name, route.name);
+        let mut path_methods = IndexMap::new();
+        
+        let operation = OpenApiOperation {
+            summary: route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name)),
+            operation_id: route.name.clone(),
+            security: vec![{
+                let mut security_req = IndexMap::new();
+                let scope = route.attrs.get("scope").unwrap_or(&"account_info.read".to_string()).clone();
+                security_req.insert("oauth2".to_string(), vec![scope]);
+                security_req
+            }],
+            request_body: if route.params.len() > 1 && route.params[0] != "Void" {
+                Some(OpenApiRequestBody {
+                    required: true,
+                    content: {
+                        let mut content = IndexMap::new();
+                        content.insert("application/json".to_string(), OpenApiMediaType {
+                            schema: OpenApiSchemaRef::Reference {
+                                reference: format!("#/components/schemas/{}", clean_type_name(&route.params[0]))
+                            },
+                            example: None,
+                        });
+                        content
+                    },
+                })
+            } else {
+                None
+            },
+            responses: {
+                let mut responses = IndexMap::new();
+                if route.params.len() > 1 {
+                    responses.insert("200".to_string(), OpenApiResponse {
+                        description: "Successful response".to_string(),
+                        content: Some({
+                            let mut content = IndexMap::new();
+                            content.insert("application/json".to_string(), OpenApiMediaType {
+                                schema: OpenApiSchemaRef::Reference {
+                                    reference: format!("#/components/schemas/{}", clean_type_name(&route.params[1]))
+                                },
+                                example: None,
+                            });
+                            content
+                        }),
+                    });
+                } else {
+                    responses.insert("200".to_string(), OpenApiResponse {
+                        description: "Successful response".to_string(),
+                        content: None,
+                    });
+                }
+                
+                if route.params.len() > 2 && route.params[2] != "Void" {
+                    responses.insert("400".to_string(), OpenApiResponse {
+                        description: "Error response".to_string(),
+                        content: Some({
+                            let mut content = IndexMap::new();
+                            content.insert("application/json".to_string(), OpenApiMediaType {
+                                schema: OpenApiSchemaRef::Reference {
+                                    reference: format!("#/components/schemas/{}", clean_type_name(&route.params[2]))
+                                },
+                                example: None,
+                            });
+                            content
+                        }),
+                    });
+                }
+                
+                responses
+            },
+        };
+        
+        path_methods.insert("post".to_string(), operation);
+        paths.insert(path, path_methods);
+    }
+    
+    // Convert structs to schemas
+    for struct_def in &namespace.structs {
+        let schema = convert_struct_to_schema(struct_def)?;
+        schemas.insert(struct_def.name.clone(), schema);
+    }
+    
+    // Convert unions to schemas
+    for union_def in &namespace.unions {
+        let schema = convert_union_to_schema(union_def)?;
+        schemas.insert(union_def.name.clone(), schema);
+    }
+    
+    // Convert aliases to schemas
+    for (name, alias_type) in &namespace.aliases {
+        let schema = convert_type_to_schema(alias_type)?;
+        schemas.insert(name.clone(), schema);
+    }
+    
+    let openapi_spec = OpenApiSpec {
+        openapi: "3.0.3".to_string(),
+        info: OpenApiInfo {
+            title: format!("Dropbox {} API", capitalize(&namespace.name)),
+            description: namespace.description.clone(),
+            version: "2.0".to_string(),
+            contact: OpenApiContact {
+                name: "Dropbox API".to_string(),
+                url: "https://www.dropbox.com/developers".to_string(),
+            },
+        },
+        servers: vec![OpenApiServer {
+            url: base_url.to_string(),
+            description: "Dropbox API v2".to_string(),
+        }],
+        paths,
+        components: OpenApiComponents {
+            security_schemes: {
+                let mut schemes = IndexMap::new();
+                schemes.insert("oauth2".to_string(), OpenApiSecurityScheme {
+                    scheme_type: "oauth2".to_string(),
+                    flows: OpenApiOAuthFlows {
+                        authorization_code: OpenApiOAuthFlow {
+                            authorization_url: "https://www.dropbox.com/oauth2/authorize".to_string(),
+                            token_url: "https://api.dropboxapi.com/oauth2/token".to_string(),
+                            scopes: {
+                                let mut scopes = IndexMap::new();
+                                scopes.insert("account_info.read".to_string(), "Read access to account information".to_string());
+                                scopes.insert("sharing.read".to_string(), "Read access to sharing information".to_string());
+                                scopes
+                            },
+                        },
+                    },
+                });
+                schemes
+            },
+            schemas,
+        },
+    };
+    
+    Ok(openapi_spec)
+}
+
+fn convert_struct_to_schema(struct_def: &StoneStruct) -> Result<OpenApiSchema> {
+    let mut properties = IndexMap::new();
+    let mut required = Vec::new();
+    
+    for field in &struct_def.fields {
+        let field_schema = convert_type_to_schema_ref(&field.field_type)?;
+        properties.insert(field.name.clone(), field_schema);
+        
+        if !field.optional {
+            required.push(field.name.clone());
+        }
+    }
+    
+    let mut schema = OpenApiSchema {
+        schema_type: Some("object".to_string()),
+        properties: Some(properties),
+        required: if required.is_empty() { None } else { Some(required) },
+        description: struct_def.description.clone(),
+        all_of: None,
+        items: None,
+        enum_values: None,
+        format: None,
+        min_length: None,
+        max_length: None,
+        minimum: None,
+        maximum: None,
+        nullable: None,
+        discriminator: None,
+    };
+    
+    // Handle inheritance
+    if let Some(extends) = &struct_def.extends {
+        let base_ref = OpenApiSchemaRef::Reference {
+            reference: format!("#/components/schemas/{}", clean_type_name(extends))
+        };
+        
+        let current_schema = OpenApiSchemaRef::Inline(schema);
+        
+        schema = OpenApiSchema {
+            schema_type: None,
+            properties: None,
+            required: None,
+            all_of: Some(vec![base_ref, current_schema]),
+            description: struct_def.description.clone(),
+            items: None,
+            enum_values: None,
+            format: None,
+            min_length: None,
+            max_length: None,
+            minimum: None,
+            maximum: None,
+            nullable: None,
+            discriminator: None,
+        };
+    }
+    
+    Ok(schema)
+}
+
+fn convert_union_to_schema(union_def: &StoneUnion) -> Result<OpenApiSchema> {
+    let mut enum_values = Vec::new();
+    let mut mapping = IndexMap::new();
+    
+    for variant in &union_def.variants {
+        enum_values.push(variant.name.clone());
+        if let Some(variant_type) = &variant.variant_type {
+            mapping.insert(variant.name.clone(), format!("#/components/schemas/{}", clean_type_name(variant_type)));
+        }
+    }
+    
+    let schema = OpenApiSchema {
+        schema_type: Some("object".to_string()),
+        properties: {
+            let mut props = IndexMap::new();
+            props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                enum_values: Some(enum_values),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                description: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }));
+            Some(props)
+        },
+        required: Some(vec![".tag".to_string()]),
+        description: union_def.description.clone(),
+        discriminator: if mapping.is_empty() { None } else {
+            Some(OpenApiDiscriminator {
+                property_name: ".tag".to_string(),
+                mapping: Some(mapping),
+            })
+        },
+        all_of: None,
+        items: None,
+        enum_values: None,
+        format: None,
+        min_length: None,
+        max_length: None,
+        minimum: None,
+        maximum: None,
+        nullable: None,
+    };
+    
+    Ok(schema)
+}
+
+fn convert_type_to_schema(type_str: &str) -> Result<OpenApiSchema> {
+    let clean_type = type_str.trim_end_matches('?');
+    let is_optional = type_str.ends_with('?');
+    
+    let schema = if clean_type.starts_with("List(") {
+        let inner_type = extract_list_inner_type(clean_type)?;
+        OpenApiSchema {
+            schema_type: Some("array".to_string()),
+            items: Some(Box::new(convert_type_to_schema_ref(&inner_type)?)),
+            nullable: if is_optional { Some(true) } else { None },
+            properties: None,
+            required: None,
+            all_of: None,
+            enum_values: None,
+            description: None,
+            format: None,
+            min_length: None,
+            max_length: None,
+            minimum: None,
+            maximum: None,
+            discriminator: None,
+        }
+    } else {
+        match clean_type {
+            "String" => OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                nullable: if is_optional { Some(true) } else { None },
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                description: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                discriminator: None,
+            },
+            "Integer" | "UInt64" => OpenApiSchema {
+                schema_type: Some("integer".to_string()),
+                format: Some("int64".to_string()),
+                nullable: if is_optional { Some(true) } else { None },
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                description: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                discriminator: None,
+            },
+            "Boolean" => OpenApiSchema {
+                schema_type: Some("boolean".to_string()),
+                nullable: if is_optional { Some(true) } else { None },
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                description: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                discriminator: None,
+            },
+            "Float" => OpenApiSchema {
+                schema_type: Some("number".to_string()),
+                format: Some("double".to_string()),
+                nullable: if is_optional { Some(true) } else { None },
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                description: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                discriminator: None,
+            },
+            _ => {
+                // Reference to another schema
+                return Err(anyhow::anyhow!("Cannot convert type {} to inline schema", clean_type));
+            }
+        }
+    };
+    
+    Ok(schema)
+}
+
+fn convert_type_to_schema_ref(type_str: &str) -> Result<OpenApiSchemaRef> {
+    let clean_type = type_str.trim_end_matches('?');
+    
+    match clean_type {
+        "String" | "Integer" | "UInt64" | "Boolean" | "Float" | "Void" => {
+            Ok(OpenApiSchemaRef::Inline(convert_type_to_schema(type_str)?))
+        }
+        _ if clean_type.starts_with("List(") => {
+            Ok(OpenApiSchemaRef::Inline(convert_type_to_schema(type_str)?))
+        }
+        _ => {
+            Ok(OpenApiSchemaRef::Reference {
+                reference: format!("#/components/schemas/{}", clean_type_name(clean_type))
+            })
+        }
+    }
+}
+
+fn extract_list_inner_type(list_type: &str) -> Result<String> {
+    if let Some(start) = list_type.find('(') {
+        if let Some(end) = list_type.rfind(')') {
+            let inner = &list_type[start + 1..end];
+            // Handle comma-separated parameters
+            if let Some(comma_pos) = inner.find(',') {
+                return Ok(inner[..comma_pos].trim().to_string());
+            }
+            return Ok(inner.trim().to_string());
+        }
+    }
+    Err(anyhow::anyhow!("Invalid list type: {}", list_type))
+}
+
+fn clean_type_name(type_name: &str) -> String {
+    type_name.replace(".", "").replace("_", "")
+}
+
+fn capitalize(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+    }
+}
