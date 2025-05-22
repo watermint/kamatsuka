@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 
 use anyhow::{Context, Result};
 use indexmap::IndexMap;
 use pest::iterators::Pair;
 use pest::Parser as PestParser;
 use serde::Serialize;
+use log::{info, debug, warn};
 
 use crate::{StoneParser, Rule};
 
@@ -205,13 +207,62 @@ pub struct OpenApiDiscriminator {
 }
 
 pub fn convert_stone_to_openapi(stone_path: &str, base_url: &str) -> Result<OpenApiSpec> {
-    let stone_content = fs::read_to_string(stone_path)
-        .with_context(|| format!("Failed to read Stone file: {}", stone_path))?;
+    let path = Path::new(stone_path);
+    info!("Converting Stone to OpenAPI: {}", stone_path);
     
-    let stone_namespace = parse_stone_dsl(&stone_content)
-        .with_context(|| "Failed to parse Stone DSL")?;
+    if path.is_file() {
+        info!("Converting single Stone file");
+        let stone_content = fs::read_to_string(stone_path)
+            .with_context(|| format!("Failed to read Stone file: {}", stone_path))?;
+        
+        let stone_namespace = parse_stone_dsl(&stone_content)
+            .with_context(|| "Failed to parse Stone DSL")?;
+        
+        convert_to_openapi(&stone_namespace, base_url)
+    } else if path.is_dir() {
+        info!("Converting directory of Stone files");
+        convert_stone_directory_to_openapi(stone_path, base_url)
+    } else {
+        Err(anyhow::anyhow!("Path does not exist: {}", stone_path))
+    }
+}
+
+pub fn convert_stone_directory_to_openapi(dir_path: &str, base_url: &str) -> Result<OpenApiSpec> {
+    let mut all_namespaces = Vec::new();
+    let mut namespace_map = HashMap::new();
     
-    convert_to_openapi(&stone_namespace, base_url)
+    info!("Scanning directory for Stone files: {}", dir_path);
+    
+    // First pass: Parse all Stone files
+    for entry in fs::read_dir(dir_path)? {
+        let entry = entry?;
+        let file_path = entry.path();
+        
+        if file_path.extension().map_or(false, |ext| ext == "stone") {
+            info!("Processing Stone file: {:?}", file_path);
+            let content = fs::read_to_string(&file_path)
+                .with_context(|| format!("Failed to read Stone file: {:?}", file_path))?;
+            
+            let namespace = parse_stone_dsl(&content)
+                .with_context(|| format!("Failed to parse Stone file: {:?}", file_path))?;
+            
+            debug!("Parsed namespace '{}' with {} routes, {} structs, {} unions", 
+                namespace.name, namespace.routes.len(), namespace.structs.len(), namespace.unions.len());
+            
+            namespace_map.insert(namespace.name.clone(), namespace.clone());
+            all_namespaces.push(namespace);
+        }
+    }
+    
+    if all_namespaces.is_empty() {
+        warn!("No .stone files found in directory: {}", dir_path);
+        return Err(anyhow::anyhow!("No .stone files found in directory: {}", dir_path));
+    }
+    
+    info!("Merging {} namespaces into OpenAPI spec", all_namespaces.len());
+    
+    // Merge all namespaces into a single OpenAPI spec
+    merge_namespaces_to_openapi(&all_namespaces, &namespace_map, base_url)
 }
 
 pub fn parse_stone_dsl(content: &str) -> Result<StoneNamespace> {
@@ -582,11 +633,20 @@ fn parse_value_to_json(pair: Pair<Rule>) -> Result<serde_json::Value> {
 }
 
 pub fn convert_to_openapi(namespace: &StoneNamespace, base_url: &str) -> Result<OpenApiSpec> {
+    let namespaces = vec![namespace.clone()];
+    let namespace_map = HashMap::new();
+    merge_namespaces_to_openapi(&namespaces, &namespace_map, base_url)
+}
+
+fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &HashMap<String, StoneNamespace>, base_url: &str) -> Result<OpenApiSpec> {
     let mut paths = IndexMap::new();
     let mut schemas = IndexMap::new();
+    let mut all_scopes = IndexMap::new();
     
-    // Convert routes to paths
-    for route in &namespace.routes {
+    // Process each namespace
+    for namespace in namespaces {
+        // Convert routes to paths
+        for route in &namespace.routes {
         let path = format!("/{}/{}", namespace.name, route.name);
         let mut path_methods = IndexMap::new();
         
@@ -663,29 +723,39 @@ pub fn convert_to_openapi(namespace: &StoneNamespace, base_url: &str) -> Result<
         paths.insert(path, path_methods);
     }
     
-    // Convert structs to schemas
-    for struct_def in &namespace.structs {
-        let schema = convert_struct_to_schema(struct_def)?;
+        // Convert structs to schemas
+        for struct_def in &namespace.structs {
+            let schema = convert_struct_to_schema(struct_def, namespace_map)?;
         schemas.insert(struct_def.name.clone(), schema);
     }
     
-    // Convert unions to schemas
-    for union_def in &namespace.unions {
-        let schema = convert_union_to_schema(union_def)?;
+        // Convert unions to schemas
+        for union_def in &namespace.unions {
+            let schema = convert_union_to_schema(union_def, namespace_map)?;
         schemas.insert(union_def.name.clone(), schema);
     }
     
-    // Convert aliases to schemas
-    for (name, alias_type) in &namespace.aliases {
-        let schema = convert_type_to_schema(alias_type)?;
+        // Convert aliases to schemas
+        for (name, alias_type) in &namespace.aliases {
+            let schema = convert_type_to_schema(alias_type, namespace_map)?;
         schemas.insert(name.clone(), schema);
+    }
+    
+    }
+    
+    // Collect all unique scopes from routes
+    for namespace in namespaces {
+        for route in &namespace.routes {
+            let scope = route.attrs.get("scope").unwrap_or(&"account_info.read".to_string()).clone();
+            all_scopes.insert(scope.clone(), format!("Access to {} operations", scope.replace("_", " ")));
+        }
     }
     
     let openapi_spec = OpenApiSpec {
         openapi: "3.0.3".to_string(),
         info: OpenApiInfo {
-            title: format!("Dropbox {} API", capitalize(&namespace.name)),
-            description: namespace.description.clone(),
+            title: "Dropbox API".to_string(),
+            description: Some("Dropbox API v2 - Combined from multiple Stone definitions".to_string()),
             version: "2.0".to_string(),
             contact: OpenApiContact {
                 name: "Dropbox API".to_string(),
@@ -706,12 +776,7 @@ pub fn convert_to_openapi(namespace: &StoneNamespace, base_url: &str) -> Result<
                         authorization_code: OpenApiOAuthFlow {
                             authorization_url: "https://www.dropbox.com/oauth2/authorize".to_string(),
                             token_url: "https://api.dropboxapi.com/oauth2/token".to_string(),
-                            scopes: {
-                                let mut scopes = IndexMap::new();
-                                scopes.insert("account_info.read".to_string(), "Read access to account information".to_string());
-                                scopes.insert("sharing.read".to_string(), "Read access to sharing information".to_string());
-                                scopes
-                            },
+                            scopes: all_scopes,
                         },
                     },
                 });
@@ -724,12 +789,27 @@ pub fn convert_to_openapi(namespace: &StoneNamespace, base_url: &str) -> Result<
     Ok(openapi_spec)
 }
 
-fn convert_struct_to_schema(struct_def: &StoneStruct) -> Result<OpenApiSchema> {
+fn resolve_type_reference(type_str: &str, namespace_map: &HashMap<String, StoneNamespace>) -> String {
+    // Handle namespace-qualified references like common.AccountId
+    if let Some(dot_pos) = type_str.find('.') {
+        let namespace_name = &type_str[..dot_pos];
+        let type_name = &type_str[dot_pos + 1..];
+        
+        // Check if we have this namespace loaded
+        if namespace_map.contains_key(namespace_name) {
+            return type_name.to_string();
+        }
+    }
+    
+    type_str.to_string()
+}
+
+fn convert_struct_to_schema(struct_def: &StoneStruct, namespace_map: &HashMap<String, StoneNamespace>) -> Result<OpenApiSchema> {
     let mut properties = IndexMap::new();
     let mut required = Vec::new();
     
     for field in &struct_def.fields {
-        let field_schema = convert_type_to_schema_ref(&field.field_type)?;
+        let field_schema = convert_type_to_schema_ref_with_namespace(&field.field_type, namespace_map)?;
         properties.insert(field.name.clone(), field_schema);
         
         if !field.optional {
@@ -756,8 +836,9 @@ fn convert_struct_to_schema(struct_def: &StoneStruct) -> Result<OpenApiSchema> {
     
     // Handle inheritance
     if let Some(extends) = &struct_def.extends {
+        let resolved_type = resolve_type_reference(extends, namespace_map);
         let base_ref = OpenApiSchemaRef::Reference {
-            reference: format!("#/components/schemas/{}", clean_type_name(extends))
+            reference: format!("#/components/schemas/{}", clean_type_name(&resolved_type))
         };
         
         let current_schema = OpenApiSchemaRef::Inline(schema);
@@ -783,14 +864,15 @@ fn convert_struct_to_schema(struct_def: &StoneStruct) -> Result<OpenApiSchema> {
     Ok(schema)
 }
 
-fn convert_union_to_schema(union_def: &StoneUnion) -> Result<OpenApiSchema> {
+fn convert_union_to_schema(union_def: &StoneUnion, namespace_map: &HashMap<String, StoneNamespace>) -> Result<OpenApiSchema> {
     let mut enum_values = Vec::new();
     let mut mapping = IndexMap::new();
     
     for variant in &union_def.variants {
         enum_values.push(variant.name.clone());
         if let Some(variant_type) = &variant.variant_type {
-            mapping.insert(variant.name.clone(), format!("#/components/schemas/{}", clean_type_name(variant_type)));
+            let resolved_type = resolve_type_reference(variant_type, namespace_map);
+            mapping.insert(variant.name.clone(), format!("#/components/schemas/{}", clean_type_name(&resolved_type)));
         }
     }
     
@@ -838,7 +920,7 @@ fn convert_union_to_schema(union_def: &StoneUnion) -> Result<OpenApiSchema> {
     Ok(schema)
 }
 
-fn convert_type_to_schema(type_str: &str) -> Result<OpenApiSchema> {
+fn convert_type_to_schema(type_str: &str, namespace_map: &HashMap<String, StoneNamespace>) -> Result<OpenApiSchema> {
     let clean_type = type_str.trim_end_matches('?');
     let is_optional = type_str.ends_with('?');
     
@@ -846,7 +928,7 @@ fn convert_type_to_schema(type_str: &str) -> Result<OpenApiSchema> {
         let inner_type = extract_list_inner_type(clean_type)?;
         OpenApiSchema {
             schema_type: Some("array".to_string()),
-            items: Some(Box::new(convert_type_to_schema_ref(&inner_type)?)),
+            items: Some(Box::new(convert_type_to_schema_ref_with_namespace(&inner_type, namespace_map)?)),
             nullable: if is_optional { Some(true) } else { None },
             properties: None,
             required: None,
@@ -937,18 +1019,24 @@ fn convert_type_to_schema(type_str: &str) -> Result<OpenApiSchema> {
 }
 
 fn convert_type_to_schema_ref(type_str: &str) -> Result<OpenApiSchemaRef> {
+    let namespace_map = HashMap::new();
+    convert_type_to_schema_ref_with_namespace(type_str, &namespace_map)
+}
+
+fn convert_type_to_schema_ref_with_namespace(type_str: &str, namespace_map: &HashMap<String, StoneNamespace>) -> Result<OpenApiSchemaRef> {
     let clean_type = type_str.trim_end_matches('?');
     
     match clean_type {
         "String" | "Integer" | "UInt64" | "Boolean" | "Float" | "Void" => {
-            Ok(OpenApiSchemaRef::Inline(convert_type_to_schema(type_str)?))
+            Ok(OpenApiSchemaRef::Inline(convert_type_to_schema(type_str, namespace_map)?))
         }
         _ if clean_type.starts_with("List(") => {
-            Ok(OpenApiSchemaRef::Inline(convert_type_to_schema(type_str)?))
+            Ok(OpenApiSchemaRef::Inline(convert_type_to_schema(type_str, namespace_map)?))
         }
         _ => {
+            let resolved_type = resolve_type_reference(clean_type, namespace_map);
             Ok(OpenApiSchemaRef::Reference {
-                reference: format!("#/components/schemas/{}", clean_type_name(clean_type))
+                reference: format!("#/components/schemas/{}", clean_type_name(&resolved_type))
             })
         }
     }

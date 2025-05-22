@@ -1,10 +1,14 @@
 use std::fs;
 use std::path::Path;
+use std::io::Write;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use colored::*;
 use pest_derive::Parser as PestParserDerive;
+use log::{info, warn, debug};
+use env_logger::{Builder, Target};
+use chrono::Local;
 
 mod converter;
 mod verifier;
@@ -41,7 +45,7 @@ enum Commands {
     
     /// Convert Stone DSL to OpenAPI specification
     Convert {
-        /// Path to Stone DSL file
+        /// Path to Stone DSL file or directory containing .stone files
         #[arg(short, long)]
         stone: String,
         
@@ -73,6 +77,11 @@ enum Commands {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     
+    // Initialize logging
+    init_logging();
+    
+    info!("Starting Kamatsuka v{}", env!("CARGO_PKG_VERSION"));
+    
     match &cli.command {
         Commands::Compare { stone, openapi, verbose } => {
             compare_command(stone, openapi, *verbose)
@@ -90,6 +99,8 @@ fn verify_stone_command(path: &str, verbose: bool) -> Result<()> {
     println!("{}", "Stone DSL Verification".green().bold());
     println!("Path: {}", path.cyan());
     println!();
+    
+    info!("Starting Stone verification for: {}", path);
     
     let path_obj = Path::new(path);
     let mut total_files = 0;
@@ -156,6 +167,7 @@ fn verify_single_stone_file(file_path: &str, verbose: bool) -> Result<bool> {
     
     match converter::parse_stone_dsl(&content) {
         Ok(namespace) => {
+            debug!("Successfully parsed {}: namespace={}", file_path, namespace.name);
             if verbose {
                 println!("  ✓ {} - Namespace: {} ({} routes, {} structs, {} unions)",
                     file_path.green(),
@@ -168,6 +180,7 @@ fn verify_single_stone_file(file_path: &str, verbose: bool) -> Result<bool> {
             Ok(true)
         }
         Err(e) => {
+            warn!("Failed to parse {}: {}", file_path, e);
             println!("  {} {}: {}", "✗".red(), file_path.red(), e);
             Ok(false)
         }
@@ -187,16 +200,35 @@ fn compare_command(stone_path: &str, openapi_path: &str, verbose: bool) -> Resul
 }
 
 fn convert_command(stone_path: &str, output_path: &str, base_url: &str, verbose: bool) -> Result<()> {
+    println!("{}", "Stone DSL to OpenAPI Conversion".green().bold());
+    println!("Input: {}", stone_path.cyan());
+    println!("Output: {}", output_path.cyan());
+    
     if verbose {
-        println!("Converting Stone DSL to OpenAPI...");
-        println!("Input: {}", stone_path);
-        println!("Output: {}", output_path);
+        let path = Path::new(stone_path);
+        if path.is_dir() {
+            println!("Mode: Directory (will merge all .stone files)");
+        } else {
+            println!("Mode: Single file");
+        }
     }
     
+    let path = Path::new(stone_path);
     let openapi_spec = converter::convert_stone_to_openapi(stone_path, base_url)?;
     
+    info!("Conversion successful, writing output to: {}", output_path);
+    
     if verbose {
-        println!("✓ Successfully parsed Stone DSL");
+        if path.is_dir() {
+            // Count stone files
+            let stone_count = fs::read_dir(stone_path)?
+                .filter_map(Result::ok)
+                .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "stone"))
+                .count();
+            println!("✓ Successfully parsed {} Stone files", stone_count);
+        } else {
+            println!("✓ Successfully parsed Stone DSL");
+        }
         println!("✓ Generated OpenAPI specification");
     }
     
@@ -214,4 +246,41 @@ fn convert_command(stone_path: &str, output_path: &str, base_url: &str, verbose:
     println!("{}", "✓ Conversion completed successfully!".green().bold());
     
     Ok(())
+}
+
+fn init_logging() {
+    // Create logs directory if it doesn't exist
+    std::fs::create_dir_all("logs").ok();
+    
+    // Generate log file name with timestamp
+    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+    let log_file_name = format!("logs/kamatsuka_{}.log", timestamp);
+    
+    // Create log file
+    let log_file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&log_file_name)
+        .expect("Failed to create log file");
+    
+    // Initialize env_logger with custom format
+    let mut builder = Builder::new();
+    builder
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "[{} {} {}:{}] {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                record.level(),
+                record.file().unwrap_or("unknown"),
+                record.line().unwrap_or(0),
+                record.args()
+            )
+        })
+        .target(Target::Pipe(Box::new(log_file)))
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+    
+    println!("Logging to: {}", log_file_name.green());
 }

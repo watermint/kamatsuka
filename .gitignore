@@ -13,6 +13,7 @@ Thumbs.db
 # Build artifacts
 build/
 dist/
+logs/
 
 
 # Cargo
