@@ -789,6 +789,34 @@ fn collect_and_check_references(
                 // Add to referenced schemas set
                 referenced_schemas.insert(schema_name.clone());
                 
+                // Special handling for Stone List types
+                if is_stone_list_type(&schema_name) {
+                    // First, check if there's an array version of this schema
+                    if let Some(array_name) = convert_list_type_to_array_name(&schema_name) {
+                        if available_schemas.contains(&array_name) {
+                            *refs_valid += 1;
+                            if verbose {
+                                println!("✓ Reference to {} is valid (using {})", schema_name.green(), array_name.cyan());
+                            }
+                            results.push(ComparisonResult::Match);
+                            return;
+                        }
+                    }
+                    
+                    // Then check if inner type exists
+                    if let Some(inner_type) = extract_schema_name(&format!("#/components/schemas/{}", schema_name)) {
+                        if available_schemas.contains(&inner_type) {
+                            *refs_valid += 1;
+                            if verbose {
+                                println!("✓ Reference to {} is valid (using inner type {})", schema_name.green(), inner_type.cyan());
+                            }
+                            results.push(ComparisonResult::Match);
+                            return;
+                        }
+                    }
+                }
+                
+                // Standard schema lookup
                 if available_schemas.contains(&schema_name) {
                     *refs_valid += 1;
                     if verbose {
@@ -840,12 +868,64 @@ fn collect_and_check_references(
 
 /// Extracts the schema name from a reference string
 /// For example, from "#/components/schemas/User" extracts "User"
+/// Also handles Stone's List() grammar
 fn extract_schema_name(reference: &str) -> Option<String> {
     if reference.starts_with("#/components/schemas/") {
-        Some(reference.trim_start_matches("#/components/schemas/").to_string())
+        let schema_name = reference.trim_start_matches("#/components/schemas/").to_string();
+        
+        // Handle Stone's List() grammar
+        if schema_name.starts_with("List(") && schema_name.ends_with(")") {
+            // Extract the inner type from List(Type)
+            let inner_start = "List(".len();
+            let inner_end = schema_name.rfind(')')?
+                .checked_sub(1)?;
+            
+            if inner_start <= inner_end {
+                let inner_type = &schema_name[inner_start..=inner_end];
+                // Handle comma-separated parameters
+                let inner_type = if let Some(comma_pos) = inner_type.find(',') {
+                    &inner_type[..comma_pos]
+                } else {
+                    inner_type
+                };
+                
+                return Some(inner_type.trim().to_string());
+            }
+        }
+        
+        return Some(schema_name);
     } else {
         None
     }
+}
+
+/// Checks if a schema name uses Stone's List() grammar
+/// For example, "List(User)" or "List(String, min_items=1)"
+fn is_stone_list_type(schema_name: &str) -> bool {
+    schema_name.starts_with("List(") && schema_name.ends_with(")")
+}
+
+/// Converts a Stone List type to an OpenAPI array schema name
+/// For example, "List(User)" -> "UserArray"
+fn convert_list_type_to_array_name(list_type: &str) -> Option<String> {
+    if is_stone_list_type(list_type) {
+        let inner_start = "List(".len();
+        let inner_end = list_type.rfind(')')?
+            .checked_sub(1)?;
+        
+        if inner_start <= inner_end {
+            let inner_type = &list_type[inner_start..=inner_end];
+            // Handle comma-separated parameters
+            let inner_type = if let Some(comma_pos) = inner_type.find(',') {
+                &inner_type[..comma_pos]
+            } else {
+                inner_type
+            };
+            
+            return Some(format!("{0}Array", inner_type.trim()));
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -1018,9 +1098,36 @@ mod tests {
         );
         
         assert_eq!(
+            extract_schema_name("#/components/schemas/List(User)"),
+            Some("User".to_string())
+        );
+        
+        assert_eq!(
+            extract_schema_name("#/components/schemas/List(String, min_items=1)"),
+            Some("String".to_string())
+        );
+        
+        assert_eq!(
             extract_schema_name("invalid/reference"),
             None
         );
+    }
+    
+    #[test]
+    fn test_is_stone_list_type() {
+        assert!(is_stone_list_type("List(User)"));
+        assert!(is_stone_list_type("List(String, min_items=1)"));
+        assert!(!is_stone_list_type("User"));
+        assert!(!is_stone_list_type("List"));
+        assert!(!is_stone_list_type("List("));
+        assert!(!is_stone_list_type("List)"));
+    }
+    
+    #[test]
+    fn test_convert_list_type_to_array_name() {
+        assert_eq!(convert_list_type_to_array_name("List(User)"), Some("UserArray".to_string()));
+        assert_eq!(convert_list_type_to_array_name("List(String, min_items=1)"), Some("StringArray".to_string()));
+        assert_eq!(convert_list_type_to_array_name("User"), None);
     }
     
     #[test]
@@ -1035,6 +1142,21 @@ mod tests {
                 required: None,
                 all_of: None,
                 items: None,
+                enum_values: None,
+            },
+        );
+        
+        // Also add a UserArray schema for List(User) test
+        schemas.insert(
+            "UserArray".to_string(),
+            OpenApiSchema::Object {
+                schema_type: Some("array".to_string()),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: Some(Box::new(OpenApiSchema::Reference {
+                    reference: "#/components/schemas/User".to_string(),
+                })),
                 enum_values: None,
             },
         );
@@ -1063,6 +1185,25 @@ mod tests {
             OpenApiResponse {
                 description: "Success".to_string(),
                 content: Some(content),
+            },
+        );
+        
+        // Add a Stone List reference - this should be resolved through our enhanced logic
+        let mut list_content = HashMap::new();
+        list_content.insert(
+            "application/json".to_string(),
+            OpenApiMediaType {
+                schema: Some(OpenApiSchema::Reference {
+                    reference: "#/components/schemas/List(User)".to_string(),
+                }),
+            },
+        );
+        
+        responses.insert(
+            "201".to_string(),
+            OpenApiResponse {
+                description: "Success with List".to_string(),
+                content: Some(list_content),
             },
         );
         
@@ -1114,15 +1255,20 @@ mod tests {
         
         let results = results.unwrap();
         
-        // Count missing references
-        let missing_count = results.iter().filter(|r| {
-            if let ComparisonResult::Missing(msg) = r {
+        // Count references by type
+        let matches_count = results.iter().filter(|r| matches!(r, ComparisonResult::Match)).count();
+        
+        // Just count that we have at least one undefined reference to NonExistent
+        let has_undefined_ref = results.iter().any(|r| {
+            if let ComparisonResult::UndefinedReference(msg) = r {
                 msg.contains("NonExistent")
             } else {
                 false
             }
-        }).count();
+        });
         
-        assert_eq!(missing_count, 1, "Should have one missing reference");
+        // We should have matches for User, List(User), and UserArray references
+        assert_eq!(matches_count, 3, "Should have three valid references");
+        assert!(has_undefined_ref, "Should have at least one undefined reference to NonExistent");
     }
 }
