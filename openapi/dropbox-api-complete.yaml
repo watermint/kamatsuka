@@ -7322,11 +7322,11 @@ components:
         team_member_id:
           type: string
         include_web_sessions:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_desktop_clients:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_mobile_clients:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - team_member_id
       - include_web_sessions
@@ -7439,11 +7439,11 @@ components:
           type: string
           nullable: true
         include_web_sessions:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_desktop_clients:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_mobile_clients:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - include_web_sessions
       - include_desktop_clients
@@ -7502,7 +7502,7 @@ components:
       - type: object
         properties:
           delete_on_unlink:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - delete_on_unlink
     RevokeDeviceSessionBatchArg:
@@ -7539,11 +7539,11 @@ components:
           type: string
           nullable: true
         include_web_sessions:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_desktop_clients:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_mobile_clients:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - include_web_sessions
       - include_desktop_clients
@@ -7676,7 +7676,7 @@ components:
       type: object
       properties:
         return_members:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - return_members
     GroupMemberInfo:
@@ -7745,7 +7745,7 @@ components:
         group_name:
           type: string
         add_creator_as_owner:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         group_external_id:
           $ref: '#/components/schemas/GroupExternalId'
         group_management_type:
@@ -7827,7 +7827,7 @@ components:
           access_type:
             $ref: '#/components/schemas/GroupAccessType'
           return_members:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - access_type
         - return_members
@@ -8177,11 +8177,11 @@ components:
           type: string
           nullable: true
         quiet:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         access_level:
-          $ref: '#/components/schemas/AccessLevel '
+          $ref: '#/components/schemas/AccessLevel'
         add_message_as_comment:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - file
       - members
@@ -8253,7 +8253,7 @@ components:
             $ref: '#/components/schemas/MemberAction'
           nullable: true
         include_inherited:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         limit:
           type: integer
           format: int32
@@ -8775,7 +8775,7 @@ components:
         team_member_id:
           type: string
         keep_app_folder:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - app_id
       - team_member_id
@@ -9057,7 +9057,7 @@ components:
       - type: object
         properties:
           force_async_off:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - force_async_off
     TeamFolderUpdateSyncSettingsArg:
@@ -9369,7 +9369,8 @@ components:
         reason:
           $ref: '#/components/schemas/RateLimitReason'
         retry_after:
-          $ref: '#/components/schemas/UInt64 '
+          type: integer
+          format: int64
       required:
       - reason
       - retry_after
@@ -9518,7 +9519,8 @@ components:
       type: object
       properties:
         limit:
-          $ref: '#/components/schemas/UInt64 '
+          type: integer
+          format: int64
       required:
       - limit
       description: Arguments for :route:`list:2`.
@@ -9574,7 +9576,7 @@ components:
         deadline:
           $ref: '#/components/schemas/FileRequestDeadline'
         open:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         description:
           type: string
           nullable: true
@@ -9595,7 +9597,7 @@ components:
         destination:
           $ref: '#/components/schemas/Path'
         deadline:
-          $ref: '#/components/schemas/UpdateFileRequestDeadline '
+          $ref: '#/components/schemas/UpdateFileRequestDeadline'
         open:
           type: boolean
           nullable: true
@@ -9759,12 +9761,12 @@ components:
       required:
       - .tag
       description: There was an error deleting all closed file requests.
-    FileRequestValidationError:
-      type: string
-      nullable: true
     FileRequestId:
       type: string
       minLength: 1
+    FileRequestValidationError:
+      type: string
+      nullable: true
     RefPaperDoc:
       type: object
       properties:
@@ -9776,11 +9778,11 @@ components:
       type: object
       properties:
         filter_by:
-          $ref: '#/components/schemas/ListPaperDocsFilterBy '
+          $ref: '#/components/schemas/ListPaperDocsFilterBy'
         sort_by:
-          $ref: '#/components/schemas/ListPaperDocsSortBy '
+          $ref: '#/components/schemas/ListPaperDocsSortBy'
         sort_order:
-          $ref: '#/components/schemas/ListPaperDocsSortOrder '
+          $ref: '#/components/schemas/ListPaperDocsSortOrder'
         limit:
           type: integer
           format: int32
@@ -9902,7 +9904,7 @@ components:
         member:
           $ref: '#/components/schemas/MemberSelector'
         access_level:
-          $ref: '#/components/schemas/AccessLevel '
+          $ref: '#/components/schemas/AccessLevel'
       required:
       - member
       - access_level
@@ -9918,7 +9920,7 @@ components:
             minimum: 1
             maximum: 1000
           filter_by:
-            $ref: '#/components/schemas/UserOnPaperDocFilter '
+            $ref: '#/components/schemas/UserOnPaperDocFilter'
         required:
         - limit
         - filter_by
@@ -9987,7 +9989,7 @@ components:
             type: string
             nullable: true
           quiet:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - members
         - quiet
@@ -10850,7 +10852,8 @@ components:
           type: integer
           format: int64
         num_used_licenses:
-          $ref: '#/components/schemas/UInt32 '
+          type: integer
+          format: int64
         policies:
           $ref: '#/components/schemas/TeamMemberPolicies'
       required:
@@ -11362,34 +11365,34 @@ components:
         propertyName: .tag
         mapping:
           invalid_root: '#/components/schemas/RootInfo'
-    SessionId:
+    NamespaceId:
       type: string
+    SharedFolderId:
+      allOf:
+      - $ref: '#/components/schemas/NamespaceId'
     OptionalNamePart:
       type: string
       maxLength: 100
     DisplayNameLegacy:
       type: string
-    EmailAddress:
-      type: string
-      maxLength: 255
     LanguageCode:
       type: string
       minLength: 2
-    DropboxTimestamp:
+    SessionId:
+      type: string
+    Date:
       type: string
       format: date-time
-    SharedFolderId:
-      allOf:
-      - $ref: '#/components/schemas/NamespaceId'
-    NamespaceId:
-      type: string
     NamePart:
       type: string
       minLength: 1
       maxLength: 100
+    EmailAddress:
+      type: string
+      maxLength: 255
     DisplayName:
       type: string
-    Date:
+    DropboxTimestamp:
       type: string
       format: date-time
     DeleteManualContactsArg:
@@ -11486,9 +11489,9 @@ components:
           shared_folder_id:
             $ref: '#/components/schemas/SharedFolderId'
           traverse_only:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
           no_access:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - traverse_only
         - no_access
@@ -11595,7 +11598,7 @@ components:
           sharing_info:
             $ref: '#/components/schemas/FileSharingInfo'
           is_downloadable:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
           export_info:
             $ref: '#/components/schemas/ExportInfo'
           property_groups:
@@ -11648,11 +11651,11 @@ components:
         path:
           $ref: '#/components/schemas/ReadPath'
         include_media_info:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_deleted:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_has_explicit_shared_members:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_property_groups:
           $ref: '#/components/schemas/TemplateFilterBase'
       required:
@@ -11703,15 +11706,15 @@ components:
         path:
           $ref: '#/components/schemas/PathROrId'
         recursive:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_media_info:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_deleted:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_has_explicit_shared_members:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         include_mounted_folders:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         limit:
           type: integer
           format: int32
@@ -11723,7 +11726,7 @@ components:
         include_property_groups:
           $ref: '#/components/schemas/TemplateFilterBase'
         include_non_downloadable_files:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - path
       - recursive
@@ -11843,7 +11846,7 @@ components:
       type: object
       properties:
         close:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         session_type:
           $ref: '#/components/schemas/UploadSessionType'
         content_hash:
@@ -11884,7 +11887,7 @@ components:
         cursor:
           $ref: '#/components/schemas/UploadSessionCursor'
         close:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         content_hash:
           $ref: '#/components/schemas/Sha256HexHash'
       required:
@@ -11907,20 +11910,20 @@ components:
         path:
           $ref: '#/components/schemas/WritePathOrId'
         mode:
-          $ref: '#/components/schemas/WriteMode '
+          $ref: '#/components/schemas/WriteMode'
         autorename:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         client_modified:
           $ref: '#/components/schemas/DropboxTimestamp'
         mute:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         property_groups:
           type: array
           items:
             $ref: '#/components/schemas/PropertyGroup'
           nullable: true
         strict_conflict:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - path
       - mode
@@ -11982,7 +11985,7 @@ components:
           minimum: 1
           maximum: 1000
         mode:
-          $ref: '#/components/schemas/SearchMode '
+          $ref: '#/components/schemas/SearchMode'
       required:
       - path
       - query
@@ -12043,9 +12046,9 @@ components:
         order_by:
           $ref: '#/components/schemas/SearchOrderBy'
         file_status:
-          $ref: '#/components/schemas/FileStatus '
+          $ref: '#/components/schemas/FileStatus'
         filename_only:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         file_extensions:
           type: array
           items:
@@ -12066,7 +12069,7 @@ components:
       type: object
       properties:
         include_highlights:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - include_highlights
     SearchV2ContinueArg:
@@ -12110,7 +12113,7 @@ components:
         path:
           $ref: '#/components/schemas/WritePath'
         autorename:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - path
       - autorename
@@ -12131,9 +12134,9 @@ components:
           items:
             $ref: '#/components/schemas/WritePath'
         autorename:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         force_async:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - paths
       - autorename
@@ -12217,11 +12220,11 @@ components:
       - type: object
         properties:
           allow_shared_folder:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
           autorename:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
           allow_ownership_transfer:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - allow_shared_folder
         - autorename
@@ -12243,7 +12246,7 @@ components:
           items:
             $ref: '#/components/schemas/RelocationPath'
         autorename:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - entries
       - autorename
@@ -12264,9 +12267,9 @@ components:
       - type: object
         properties:
           allow_shared_folder:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
           allow_ownership_transfer:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - allow_shared_folder
         - allow_ownership_transfer
@@ -12294,7 +12297,7 @@ components:
       - type: object
         properties:
           allow_ownership_transfer:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - allow_ownership_transfer
     ThumbnailArg:
@@ -12303,11 +12306,11 @@ components:
         path:
           $ref: '#/components/schemas/ReadPath'
         format:
-          $ref: '#/components/schemas/ThumbnailFormat '
+          $ref: '#/components/schemas/ThumbnailFormat'
         size:
-          $ref: '#/components/schemas/ThumbnailSize '
+          $ref: '#/components/schemas/ThumbnailSize'
         mode:
-          $ref: '#/components/schemas/ThumbnailMode '
+          $ref: '#/components/schemas/ThumbnailMode'
       required:
       - path
       - format
@@ -12383,11 +12386,11 @@ components:
         resource:
           $ref: '#/components/schemas/PathOrLink'
         format:
-          $ref: '#/components/schemas/ThumbnailFormat '
+          $ref: '#/components/schemas/ThumbnailFormat'
         size:
-          $ref: '#/components/schemas/ThumbnailSize '
+          $ref: '#/components/schemas/ThumbnailSize'
         mode:
-          $ref: '#/components/schemas/ThumbnailMode '
+          $ref: '#/components/schemas/ThumbnailMode'
       required:
       - resource
       - format
@@ -12408,7 +12411,7 @@ components:
         path:
           $ref: '#/components/schemas/PathOrId'
         mode:
-          $ref: '#/components/schemas/ListRevisionsMode '
+          $ref: '#/components/schemas/ListRevisionsMode'
         limit:
           type: integer
           format: int64
@@ -13812,14 +13815,16 @@ components:
         propertyName: .tag
         mapping:
           path: '#/components/schemas/LookupError'
+    PathR:
+      type: string
+    CopyBatchArg:
+      allOf:
+      - $ref: '#/components/schemas/RelocationBatchArgBase'
+    WritePath:
+      type: string
     SearchV2Cursor:
       type: string
       minLength: 1
-    ListFolderCursor:
-      type: string
-      minLength: 1
-    Path:
-      type: string
     FileId:
       type: string
       minLength: 4
@@ -13830,28 +13835,26 @@ components:
       type: string
       minLength: 64
       maxLength: 64
-    CopyBatchArg:
+    Id:
       allOf:
-      - $ref: '#/components/schemas/RelocationBatchArgBase'
-    WritePathOrId:
+      - $ref: '#/components/schemas/Id'
+    SharedLinkUrl:
+      type: string
+    PathROrId:
       type: string
     MalformedPathError:
       type: string
       nullable: true
-    PathROrId:
+    ListFolderCursor:
       type: string
-    WritePath:
-      type: string
-    Id:
-      allOf:
-      - $ref: '#/components/schemas/Id'
-    PathR:
-      type: string
-    SharedLinkUrl:
+      minLength: 1
+    Path:
       type: string
     ReadPath:
       allOf:
       - $ref: '#/components/schemas/ReadPath'
+    WritePathOrId:
+      type: string
     Route:
       type: object
       properties:
@@ -13862,9 +13865,9 @@ components:
         style:
           type: string
         is_preview:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         allow_app_folder_app:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         select_admin_mode:
           type: string
           nullable: true
@@ -13872,7 +13875,7 @@ components:
           type: string
           nullable: true
         is_cloud_doc_auth:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - auth
       - host
@@ -14249,7 +14252,7 @@ components:
         mode:
           $ref: '#/components/schemas/PropertiesSearchMode'
         logical_operator:
-          $ref: '#/components/schemas/LogicalOperator '
+          $ref: '#/components/schemas/LogicalOperator'
       required:
       - query
       - mode
@@ -14262,7 +14265,7 @@ components:
           items:
             $ref: '#/components/schemas/PropertiesSearchQuery'
         template_filter:
-          $ref: '#/components/schemas/TemplateFilter '
+          $ref: '#/components/schemas/TemplateFilter'
       required:
       - queries
       - template_filter
@@ -14474,10 +14477,10 @@ components:
           - reset
       required:
       - .tag
-    TemplateId:
+    PropertiesSearchCursor:
       type: string
       minLength: 1
-    PropertiesSearchCursor:
+    TemplateId:
       type: string
       minLength: 1
     JoinTeamDetails:
@@ -27209,9 +27212,9 @@ components:
           type: boolean
           nullable: true
         iss:
-          $ref: '#/components/schemas/String '
+          type: string
         sub:
-          $ref: '#/components/schemas/String '
+          type: string
       required:
       - iss
       - sub
@@ -27236,7 +27239,7 @@ components:
       discriminator:
         propertyName: .tag
         mapping:
-          openid_error: '#/components/schemas/OpenIdError '
+          openid_error: '#/components/schemas/OpenIdError'
     GetSharedLinkMetadataArg:
       type: object
       properties:
@@ -27427,7 +27430,7 @@ components:
         settings:
           $ref: '#/components/schemas/SharedLinkSettings'
         remove_expiration:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - url
       - settings
@@ -27502,7 +27505,7 @@ components:
         path:
           type: string
         short_url:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         pending_upload:
           $ref: '#/components/schemas/PendingUploadMode'
       required:
@@ -27963,9 +27966,9 @@ components:
           items:
             type: string
         cursor:
-          $ref: '#/components/schemas/String '
+          type: string
         has_more:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - domains
       - emails
@@ -28115,7 +28118,7 @@ components:
           minimum: 1
           maximum: 1000
         include_removed:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - limit
       - include_removed
@@ -28219,7 +28222,7 @@ components:
           type: string
           nullable: true
         send_welcome_email:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         is_directory_restricted:
           type: boolean
           nullable: true
@@ -28232,7 +28235,7 @@ components:
       - type: object
         properties:
           role:
-            $ref: '#/components/schemas/AdminTier '
+            $ref: '#/components/schemas/AdminTier'
         required:
         - role
     MemberAddV2Arg:
@@ -28249,7 +28252,7 @@ components:
       type: object
       properties:
         force_async:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - force_async
     MembersAddV2Arg:
@@ -28386,7 +28389,7 @@ components:
       - type: object
         properties:
           wipe_data:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - wipe_data
     MembersRemoveArg:
@@ -28399,9 +28402,9 @@ components:
           transfer_admin_id:
             $ref: '#/components/schemas/UserSelectorArg'
           keep_account:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
           retain_team_shares:
-            $ref: '#/components/schemas/Boolean '
+            type: boolean
         required:
         - keep_account
         - retain_team_shares
@@ -28889,7 +28892,7 @@ components:
       type: object
       properties:
         include_released:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - include_released
     LegalHoldsListPoliciesResult:
@@ -29096,26 +29099,26 @@ components:
           - legal_hold_policy_not_found
       required:
       - .tag
+    LegalHoldsGetPolicyResult:
+      allOf:
+      - $ref: '#/components/schemas/LegalHoldPolicy'
+    LegalHoldId:
+      type: string
+    ListHeldRevisionCursor:
+      type: string
+      minLength: 1
+    LegalHoldsPolicyUpdateResult:
+      allOf:
+      - $ref: '#/components/schemas/LegalHoldPolicy'
+    LegalHoldsPolicyCreateResult:
+      allOf:
+      - $ref: '#/components/schemas/LegalHoldPolicy'
     LegalHoldPolicyName:
       type: string
       maxLength: 140
     LegalHoldPolicyDescription:
       type: string
       maxLength: 501
-    LegalHoldsPolicyCreateResult:
-      allOf:
-      - $ref: '#/components/schemas/LegalHoldPolicy'
-    ListHeldRevisionCursor:
-      type: string
-      minLength: 1
-    LegalHoldId:
-      type: string
-    LegalHoldsGetPolicyResult:
-      allOf:
-      - $ref: '#/components/schemas/LegalHoldPolicy'
-    LegalHoldsPolicyUpdateResult:
-      allOf:
-      - $ref: '#/components/schemas/LegalHoldPolicy'
     GroupSummary:
       type: object
       properties:
@@ -29179,18 +29182,18 @@ components:
       required:
       - .tag
       description: The type of the space limit imposed on a team member.
-    GroupId:
+    ResellerId:
       type: string
     MemberExternalId:
       type: string
       maxLength: 64
+    GroupId:
+      type: string
     TeamId:
       type: string
-    TeamMemberId:
-      type: string
-    ResellerId:
-      type: string
     GroupExternalId:
+      type: string
+    TeamMemberId:
       type: string
     FolderPolicy:
       type: object
@@ -29261,7 +29264,7 @@ components:
           type: string
           nullable: true
         is_inherited:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - access_type
       - is_inherited
@@ -29402,7 +29405,7 @@ components:
           time_invited:
             $ref: '#/components/schemas/DropboxTimestamp'
           access_inheritance:
-            $ref: '#/components/schemas/AccessInheritance '
+            $ref: '#/components/schemas/AccessInheritance'
         required:
         - name
         - policy
@@ -29557,7 +29560,7 @@ components:
         acl_update_policy:
           $ref: '#/components/schemas/AclUpdatePolicy'
         force_async:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         member_policy:
           $ref: '#/components/schemas/MemberPolicy'
         path:
@@ -29567,7 +29570,7 @@ components:
         viewer_info_policy:
           $ref: '#/components/schemas/ViewerInfoPolicy'
         access_inheritance:
-          $ref: '#/components/schemas/AccessInheritance '
+          $ref: '#/components/schemas/AccessInheritance'
       required:
       - force_async
       - path
@@ -29590,7 +29593,7 @@ components:
         shared_folder_id:
           $ref: '#/components/schemas/SharedFolderId'
         leave_a_copy:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - shared_folder_id
       - leave_a_copy
@@ -29637,7 +29640,7 @@ components:
           items:
             $ref: '#/components/schemas/AddMember'
         quiet:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
         custom_message:
           type: string
           minLength: 1
@@ -29708,7 +29711,7 @@ components:
         shared_folder_id:
           $ref: '#/components/schemas/SharedFolderId'
         leave_a_copy:
-          $ref: '#/components/schemas/Boolean '
+          type: boolean
       required:
       - shared_folder_id
       - leave_a_copy
@@ -29716,7 +29719,7 @@ components:
       type: object
       properties:
         access_inheritance:
-          $ref: '#/components/schemas/AccessInheritance '
+          $ref: '#/components/schemas/AccessInheritance'
         shared_folder_id:
           $ref: '#/components/schemas/SharedFolderId'
       required:
@@ -30731,7 +30734,7 @@ components:
       type: object
       properties:
         result:
-          $ref: '#/components/schemas/String '
+          type: string
       required:
       - result
       description: EchoResult contains the result returned from the Dropbox servers.

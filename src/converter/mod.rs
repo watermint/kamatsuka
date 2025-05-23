@@ -1,3 +1,17 @@
+// Copyright 2025 Takayuki Okazaki
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -360,7 +374,7 @@ fn parse_route_def(pair: Pair<Rule>) -> Result<StoneRoute> {
             }
             Rule::type_all => {
                 // Routes have 3 type_all parameters inline
-                route.params.push(inner_pair.as_str().to_string());
+                route.params.push(inner_pair.as_str().trim().to_string());
             }
             Rule::spec_doc => {
                 route.description = Some(parse_doc(inner_pair)?);
@@ -421,7 +435,7 @@ fn parse_struct_def(pair: Pair<Rule>) -> Result<StoneStruct> {
             Rule::spec_struct_extends => {
                 for extends_pair in inner_pair.into_inner() {
                     if let Rule::identity_ref = extends_pair.as_rule() {
-                        struct_def.extends = Some(extends_pair.as_str().to_string());
+                        struct_def.extends = Some(extends_pair.as_str().trim().to_string());
                     }
                 }
             }
@@ -499,7 +513,7 @@ fn parse_field_def(pair: Pair<Rule>) -> Result<StoneField> {
                 field.name = inner_pair.as_str().to_string();
             }
             Rule::type_all_optional => {
-                field.field_type = inner_pair.as_str().to_string();
+                field.field_type = inner_pair.as_str().trim().to_string();
                 field.optional = field.field_type.ends_with('?');
             }
             Rule::spec_doc => {
@@ -525,7 +539,7 @@ fn parse_union_tag(pair: Pair<Rule>) -> Result<StoneVariant> {
                 variant.name = inner_pair.as_str().to_string();
             }
             Rule::type_all_optional => {
-                variant.variant_type = Some(inner_pair.as_str().to_string());
+                variant.variant_type = Some(inner_pair.as_str().trim().to_string());
             }
             Rule::spec_doc => {
                 variant.description = Some(parse_doc(inner_pair)?);
@@ -627,7 +641,7 @@ fn parse_alias_def(pair: Pair<Rule>) -> Result<(String, String)> {
                 name = inner_pair.as_str().to_string();
             }
             Rule::type_all_optional => {
-                alias_type = inner_pair.as_str().to_string();
+                alias_type = inner_pair.as_str().trim().to_string();
             }
             _ => {}
         }
@@ -1328,7 +1342,7 @@ fn extract_list_inner_type(list_type: &str) -> Result<String> {
 }
 
 fn clean_type_name(type_name: &str) -> String {
-    type_name.replace(".", "").replace("_", "")
+    type_name.trim().replace(".", "").replace("_", "")
 }
 
 #[allow(dead_code)]

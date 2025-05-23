@@ -2,6 +2,12 @@
 name = "kamatsuka"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+authors = ["Your Name <your.email@example.com>"]
+description = "Stone DSL to OpenAPI converter for Dropbox API modeling and analysis"
+repository = "https://github.com/your-username/kamatsuka"
+keywords = ["openapi", "stone", "dropbox", "api", "converter"]
+categories = ["command-line-utilities", "development-tools", "web-programming"]
 
 [dependencies]
 pest = "2.8"

@@ -1,3 +1,7 @@
+// Copyright 2025 Takayuki Okazaki
+// Licensed under the Apache License, Version 2.0
+// Stone DSL PEG Grammar for Dropbox API parsing
+
 SYNTAX_KEYWORDS = _{
     "namespace" |
     "import"|
