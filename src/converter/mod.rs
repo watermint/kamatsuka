@@ -777,9 +777,9 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
     
         // Convert aliases to schemas
         for (name, alias_type) in &namespace.aliases {
-            let schema = convert_type_to_schema(alias_type, namespace_map)?;
-        schemas.insert(name.clone(), schema);
-    }
+            let schema = convert_alias_to_schema(alias_type, namespace_map)?;
+            schemas.insert(name.clone(), schema);
+        }
     
     }
     
@@ -1234,6 +1234,51 @@ fn convert_type_to_schema(type_str: &str, namespace_map: &HashMap<String, StoneN
 fn convert_type_to_schema_ref(type_str: &str) -> Result<OpenApiSchemaRef> {
     let namespace_map = HashMap::new();
     convert_type_to_schema_ref_with_namespace(type_str, &namespace_map)
+}
+
+fn convert_alias_to_schema(alias_type: &str, namespace_map: &HashMap<String, StoneNamespace>) -> Result<OpenApiSchema> {
+    // For aliases, we need to handle the underlying type properly
+    let clean_type = alias_type.trim_end_matches('?');
+    let is_optional = alias_type.ends_with('?');
+    
+    // Try to convert as inline schema first for primitive types with parameters
+    if clean_type.starts_with("String(") || 
+       clean_type.starts_with("Int32(") || clean_type.starts_with("Int64(") ||
+       clean_type.starts_with("UInt32(") || clean_type.starts_with("UInt64(") ||
+       clean_type.starts_with("Float32(") || clean_type.starts_with("Float64(") ||
+       clean_type.starts_with("Timestamp(") || clean_type.starts_with("List(") {
+        return convert_type_to_schema(alias_type, namespace_map);
+    }
+    
+    // For simple primitive types
+    match clean_type {
+        "String" | "Integer" | "Int32" | "Int64" | "UInt32" | "UInt64" | 
+        "Boolean" | "Float" | "Float32" | "Float64" | "Void" | "Bytes" | "Timestamp" => {
+            return convert_type_to_schema(alias_type, namespace_map);
+        }
+        _ => {
+            // For custom types that reference other types, create a reference
+            let resolved_type = resolve_type_reference(clean_type, namespace_map);
+            return Ok(OpenApiSchema {
+                schema_type: None,
+                properties: None,
+                required: None,
+                all_of: Some(vec![OpenApiSchemaRef::Reference {
+                    reference: format!("#/components/schemas/{}", clean_type_name(&resolved_type))
+                }]),
+                items: None,
+                enum_values: None,
+                description: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: if is_optional { Some(true) } else { None },
+                discriminator: None,
+            });
+        }
+    }
 }
 
 fn convert_type_to_schema_ref_with_namespace(type_str: &str, namespace_map: &HashMap<String, StoneNamespace>) -> Result<OpenApiSchemaRef> {

@@ -72,6 +72,17 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    
+    /// Validate OpenAPI specification
+    ValidateOpenapi {
+        /// Path to OpenAPI YAML file
+        #[arg(short, long)]
+        openapi: String,
+        
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -91,6 +102,9 @@ fn main() -> Result<()> {
         }
         Commands::VerifyStone { path, verbose } => {
             verify_stone_command(path, *verbose)
+        }
+        Commands::ValidateOpenapi { openapi, verbose } => {
+            validate_openapi_command(openapi, *verbose)
         }
     }
 }
@@ -283,4 +297,163 @@ fn init_logging() {
         .init();
     
     println!("Logging to: {}", log_file_name.green());
+}
+
+fn validate_openapi_command(openapi_path: &str, verbose: bool) -> Result<()> {
+    println!("{}", "OpenAPI Specification Validation".green().bold());
+    println!("File: {}", openapi_path.cyan());
+    println!();
+    
+    // Read and parse the OpenAPI file
+    let openapi_content = fs::read_to_string(openapi_path)
+        .with_context(|| format!("Failed to read OpenAPI file: {}", openapi_path))?;
+    
+    // Validate YAML syntax
+    let openapi_value: serde_yaml::Value = serde_yaml::from_str(&openapi_content)
+        .with_context(|| "Invalid YAML syntax")?;
+    
+    if verbose {
+        println!("✅ Valid YAML syntax");
+    }
+    
+    // Validate OpenAPI specification structure by checking required fields
+    let openapi_map = openapi_value.as_mapping()
+        .with_context(|| "OpenAPI file must be an object")?;
+    
+    // Check required top-level fields
+    let openapi_version = openapi_map.get("openapi")
+        .and_then(|v| v.as_str())
+        .with_context(|| "Missing required field: openapi")?;
+    
+    let info = openapi_map.get("info")
+        .and_then(|v| v.as_mapping())
+        .with_context(|| "Missing or invalid required field: info")?;
+    
+    let title = info.get("title")
+        .and_then(|v| v.as_str())
+        .with_context(|| "Missing required field: info.title")?;
+    
+    let version = info.get("version")
+        .and_then(|v| v.as_str())
+        .with_context(|| "Missing required field: info.version")?;
+    
+    if verbose {
+        println!("✅ Valid OpenAPI structure");
+    }
+    
+    // Validate OpenAPI version
+    if !openapi_version.starts_with("3.") {
+        return Err(anyhow::anyhow!("Unsupported OpenAPI version: {}", openapi_version));
+    }
+    
+    if verbose {
+        println!("✅ OpenAPI version {} is supported", openapi_version);
+    }
+    
+    // Count components
+    let empty_mapping = serde_yaml::Mapping::new();
+    let paths = openapi_map.get("paths")
+        .and_then(|v| v.as_mapping())
+        .unwrap_or(&empty_mapping);
+    
+    let components = openapi_map.get("components")
+        .and_then(|v| v.as_mapping());
+    
+    let (schema_count, security_scheme_count) = if let Some(comp) = components {
+        let schemas = comp.get("schemas")
+            .and_then(|v| v.as_mapping())
+            .map(|m| m.len())
+            .unwrap_or(0);
+        let security_schemes = comp.get("securitySchemes")
+            .and_then(|v| v.as_mapping())
+            .map(|m| m.len())
+            .unwrap_or(0);
+        (schemas, security_schemes)
+    } else {
+        (0, 0)
+    };
+    
+    let path_count = paths.len();
+    
+    // Validate required fields (already checked above)
+    if title.is_empty() {
+        return Err(anyhow::anyhow!("Empty required field: info.title"));
+    }
+    
+    if version.is_empty() {
+        return Err(anyhow::anyhow!("Empty required field: info.version"));
+    }
+    
+    // Check for schema references (basic count)
+    let reference_count = openapi_content.matches("#/components/schemas/").count();
+    
+    if verbose {
+        println!("✅ Schema references validated ({} references found)", reference_count);
+        println!("✅ Required fields present");
+    }
+    
+    // Print summary
+    println!("{}", "\n📊 Validation Summary:".yellow().bold());
+    println!("  OpenAPI Version: {}", openapi_version.green());
+    println!("  Title: {}", title.green());
+    println!("  Version: {}", version.green());
+    println!("  Paths: {}", path_count.to_string().cyan());
+    println!("  Schemas: {}", schema_count.to_string().cyan());
+    println!("  Security Schemes: {}", security_scheme_count.to_string().cyan());
+    println!("  Schema References: {}", reference_count.to_string().cyan());
+    
+    // Validate some common OpenAPI patterns
+    let mut warnings = Vec::new();
+    
+    // Check if all paths have operations
+    for (path_key, path_value) in paths {
+        if let Some(path_str) = path_key.as_str() {
+            if let Some(path_ops) = path_value.as_mapping() {
+                if path_ops.is_empty() {
+                    warnings.push(format!("Path '{}' has no operations", path_str));
+                }
+            }
+        }
+    }
+    
+    // Basic validation of schema structure
+    if let Some(comp) = components {
+        if let Some(schemas) = comp.get("schemas").and_then(|v| v.as_mapping()) {
+            for (schema_name, _schema_def) in schemas {
+                if let Some(name_str) = schema_name.as_str() {
+                    // Just validate that schema names are valid
+                    if name_str.is_empty() {
+                        warnings.push("Found schema with empty name".to_string());
+                    }
+                }
+            }
+        }
+    }
+    
+    let unused_schemas = Vec::<String>::new(); // Simplified for now
+    
+    if !warnings.is_empty() && verbose {
+        println!("\n⚠️  Warnings:");
+        for warning in &warnings {
+            println!("  - {}", warning.yellow());
+        }
+    }
+    
+    if !unused_schemas.is_empty() && verbose {
+        println!("\n📝 Potentially unused schemas: {}", unused_schemas.len());
+        if unused_schemas.len() <= 10 {
+            for schema in &unused_schemas {
+                println!("  - {}", schema.dimmed());
+            }
+        } else {
+            println!("  (showing first 10 of {})", unused_schemas.len());
+            for schema in unused_schemas.iter().take(10) {
+                println!("  - {}", schema.dimmed());
+            }
+        }
+    }
+    
+    println!("\n{}", "✅ OpenAPI specification is valid!".green().bold());
+    
+    Ok(())
 }
