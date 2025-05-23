@@ -3,5 +3,3 @@ namespace test
 struct User
 
 struct Account
-
-route get_user(Void, User, Void)

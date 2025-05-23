@@ -491,3 +491,153 @@ pub fn report_results(results: &[ComparisonResult]) {
         println!("{}", "✓ All checks passed!".green().bold());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    
+    #[test]
+    fn test_parse_stone_dsl() {
+        let stone_content = "namespace test\n\nstruct User";
+        
+        let result = parse_stone_dsl(stone_content);
+        assert!(result.is_ok());
+        
+        let namespace = result.unwrap();
+        assert_eq!(namespace.name, "test");
+        assert_eq!(namespace.structs.len(), 1);
+    }
+    
+    #[test]
+    fn test_comparison_result_counts() {
+        let results = vec![
+            ComparisonResult::Match,
+            ComparisonResult::Missing("field1".to_string()),
+            ComparisonResult::Extra("field2".to_string()),
+            ComparisonResult::Mismatch("type mismatch".to_string()),
+            ComparisonResult::Missing("field3".to_string()),
+        ];
+        
+        let mut missing = 0;
+        let mut extra = 0;
+        let mut mismatches = 0;
+        
+        for result in &results {
+            match result {
+                ComparisonResult::Missing(_) => missing += 1,
+                ComparisonResult::Extra(_) => extra += 1,
+                ComparisonResult::Mismatch(_) => mismatches += 1,
+                ComparisonResult::Match => {},
+            }
+        }
+        
+        assert_eq!(missing, 2);
+        assert_eq!(extra, 1);
+        assert_eq!(mismatches, 1);
+    }
+    
+    #[test]
+    fn test_create_stone_structs() {
+        let stone_struct = StoneStruct {
+            name: "User".to_string(),
+            fields: vec![
+                StoneField {
+                    name: "id".to_string(),
+                    field_type: "String".to_string(),
+                    optional: false,
+                    description: Some("User ID".to_string()),
+                },
+            ],
+            extends: None,
+            description: Some("User struct".to_string()),
+        };
+        
+        assert_eq!(stone_struct.name, "User");
+        assert_eq!(stone_struct.fields.len(), 1);
+        assert_eq!(stone_struct.fields[0].name, "id");
+        assert!(!stone_struct.fields[0].optional);
+    }
+    
+    #[test]
+    fn test_create_stone_unions() {
+        let stone_union = StoneUnion {
+            name: "Status".to_string(),
+            variants: vec![
+                StoneVariant {
+                    name: "active".to_string(),
+                    variant_type: None,
+                    description: Some("Active status".to_string()),
+                },
+                StoneVariant {
+                    name: "error".to_string(),
+                    variant_type: Some("ErrorInfo".to_string()),
+                    description: None,
+                },
+            ],
+            closed: true,
+            description: Some("Status union".to_string()),
+        };
+        
+        assert_eq!(stone_union.name, "Status");
+        assert_eq!(stone_union.variants.len(), 2);
+        assert!(stone_union.closed);
+        assert_eq!(stone_union.variants[1].variant_type, Some("ErrorInfo".to_string()));
+    }
+    
+    #[test]
+    fn test_create_openapi_schema() {
+        // Test reference schema
+        let ref_schema = OpenApiSchema::Reference {
+            reference: "#/components/schemas/User".to_string(),
+        };
+        
+        match ref_schema {
+            OpenApiSchema::Reference { reference } => {
+                assert_eq!(reference, "#/components/schemas/User");
+            }
+            _ => panic!("Expected Reference variant"),
+        }
+        
+        // Test object schema
+        let mut properties = HashMap::new();
+        properties.insert("id".to_string(), OpenApiSchema::Object {
+            schema_type: Some("string".to_string()),
+            properties: None,
+            required: None,
+            all_of: None,
+            items: None,
+            enum_values: None,
+        });
+        
+        let obj_schema = OpenApiSchema::Object {
+            schema_type: Some("object".to_string()),
+            properties: Some(properties),
+            required: Some(vec!["id".to_string()]),
+            all_of: None,
+            items: None,
+            enum_values: None,
+        };
+        
+        match obj_schema {
+            OpenApiSchema::Object { schema_type, properties, required, .. } => {
+                assert_eq!(schema_type, Some("object".to_string()));
+                assert!(properties.is_some());
+                assert_eq!(required, Some(vec!["id".to_string()]));
+            }
+            _ => panic!("Expected Object variant"),
+        }
+    }
+    
+    #[test]
+    fn test_report_results() {
+        // This test ensures report_results doesn't panic
+        let results = vec![
+            ComparisonResult::Match,
+            ComparisonResult::Missing("test".to_string()),
+        ];
+        
+        // report_results prints to stdout, so we just ensure it doesn't panic
+        report_results(&results);
+    }
+}

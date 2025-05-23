@@ -86,6 +86,8 @@ kamatsuka/
 ├── openapi/             # OpenAPI specifications
 │   └── users.yaml       # Example OpenAPI spec
 ├── test/                # Test Stone files for development
+│   ├── debug.stone      # Debug/test Stone file
+│   └── simple.stone     # Simple test Stone file
 ├── logs/                # Application logs (auto-created, gitignored)
 └── examples/            # Alloy use cases
     └── use_cases.als    # Example API use cases in Alloy
