@@ -122,6 +122,8 @@ pub struct OpenApiOperation {
     #[serde(rename = "requestBody", skip_serializing_if = "Option::is_none")]
     pub request_body: Option<OpenApiRequestBody>,
     pub responses: IndexMap<String, OpenApiResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub servers: Option<Vec<OpenApiServer>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -704,6 +706,9 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
         let path = format!("/{}/{}", namespace.name, route.name);
         let mut path_methods = IndexMap::new();
         
+        // Determine host from route attributes
+        let host = route.attrs.get("host").cloned();
+        
         let operation = OpenApiOperation {
             summary: route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name)),
             operation_id: route.name.clone(),
@@ -713,6 +718,22 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
                 security_req.insert("oauth2".to_string(), vec![scope]);
                 security_req
             }],
+            // Add server based on host attribute
+            servers: match host.as_deref() {
+                Some("content") => Some(vec![OpenApiServer {
+                    url: base_url.replace("api", "content"),
+                    description: "Dropbox Content Server".to_string(),
+                }]),
+                Some("notify") => Some(vec![OpenApiServer {
+                    url: base_url.replace("api", "notify"),
+                    description: "Dropbox Notify Server".to_string(),
+                }]),
+                Some(host_value) => Some(vec![OpenApiServer {
+                    url: base_url.replace("api", host_value),
+                    description: format!("Dropbox {} Server", host_value),
+                }]),
+                None => None, // Use the default server
+            },
             request_body: if route.params.len() > 1 && route.params[0] != "Void" {
                 Some(OpenApiRequestBody {
                     required: true,
@@ -816,10 +837,27 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
                 url: "https://www.dropbox.com/developers".to_string(),
             },
         },
-        servers: vec![OpenApiServer {
-            url: base_url.to_string(),
-            description: "Dropbox API v2".to_string(),
-        }],
+        servers: {
+            // Define multiple servers based on host attribute values
+            let mut servers = vec![
+                // Default API server
+                OpenApiServer {
+                    url: base_url.to_string(),
+                    description: "Dropbox API v2 - API Server".to_string(),
+                },
+                // Content server
+                OpenApiServer {
+                    url: base_url.replace("api", "content"),
+                    description: "Dropbox API v2 - Content Server".to_string(),
+                },
+                // Notify server
+                OpenApiServer {
+                    url: base_url.replace("api", "notify"),
+                    description: "Dropbox API v2 - Notify Server".to_string(),
+                }
+            ];
+            servers
+        },
         paths,
         components: OpenApiComponents {
             security_schemes: {
@@ -1399,13 +1437,39 @@ mod tests {
     #[test]
     fn test_convert_to_openapi() {
         let namespace = StoneNamespace {
-            name: "test".to_string(),
+            name: "example".to_string(),
             description: Some("Test namespace".to_string()),
-            routes: vec![],
-            structs: vec![],
+            routes: vec![
+                StoneRoute {
+                    name: "get_user".to_string(),
+                    description: Some("Get a user".to_string()),
+                    params: vec!["Void".to_string(), "User".to_string()],
+                    attrs: HashMap::new(),
+                },
+                // Route with host attribute
+                StoneRoute {
+                    name: "upload_file".to_string(),
+                    description: Some("Upload a file".to_string()),
+                    params: vec!["Void".to_string(), "User".to_string()],
+                    attrs: {
+                        let mut attrs = HashMap::new();
+                        attrs.insert("host".to_string(), "content".to_string());
+                        attrs
+                    },
+                },
+            ],
+            structs: vec![
+                StoneStruct {
+                    name: "User".to_string(),
+                    description: Some("A user".to_string()),
+                    fields: vec![],
+                    extends: None,
+                    examples: vec![],
+                }
+            ],
             unions: vec![],
-            aliases: HashMap::new(),
             imports: vec![],
+            aliases: HashMap::new(),
         };
         
         let result = convert_to_openapi(&namespace, "https://api.example.com");
@@ -1414,7 +1478,20 @@ mod tests {
         let openapi = result.unwrap();
         assert_eq!(openapi.openapi, "3.0.3");
         assert_eq!(openapi.info.title, "Dropbox API");
+        
+        // Check that main server is defined
         assert_eq!(openapi.servers[0].url, "https://api.example.com");
+        
+        // Check path-specific server for the endpoint with host attribute
+        let paths = &openapi.paths;
+        let upload_path = paths.get("/example/upload_file").expect("Upload path should exist");
+        let post_operation = upload_path.get("post").expect("POST operation should exist");
+        
+        // Verify server override based on host attribute
+        assert!(post_operation.servers.is_some());
+        let servers = post_operation.servers.as_ref().unwrap();
+        assert_eq!(servers.len(), 1);
+        assert_eq!(servers[0].url, "https://content.example.com");
     }
     
     #[test]
