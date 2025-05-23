@@ -156,7 +156,7 @@ pub fn verify_stone_openapi(stone_path: &str, openapi_path: &str, verbose: bool)
 }
 
 pub fn parse_stone_dsl(content: &str) -> Result<StoneNamespace> {
-    let pairs = StoneParser::parse(Rule::stone_file, content)
+    let pairs = StoneParser::parse(Rule::spec, content)
         .map_err(|e| anyhow::anyhow!("Parse error: {}", e))?;
     
     let mut namespace = StoneNamespace {
@@ -171,24 +171,32 @@ pub fn parse_stone_dsl(content: &str) -> Result<StoneNamespace> {
     for pair in pairs {
         for inner_pair in pair.into_inner() {
             match inner_pair.as_rule() {
-                Rule::namespace_def => {
+                Rule::spec_namespace => {
                     parse_namespace_def(inner_pair, &mut namespace)?;
                 }
-                Rule::route_def => {
-                    let route = parse_route_def(inner_pair)?;
-                    namespace.routes.push(route);
-                }
-                Rule::struct_def => {
-                    let struct_def = parse_struct_def(inner_pair)?;
-                    namespace.structs.push(struct_def);
-                }
-                Rule::union_def => {
-                    let union_def = parse_union_def(inner_pair)?;
-                    namespace.unions.push(union_def);
-                }
-                Rule::alias_def => {
-                    let (name, alias_type) = parse_alias_def(inner_pair)?;
-                    namespace.aliases.insert(name, alias_type);
+                Rule::spec_definition => {
+                    // spec_definition contains the actual definitions
+                    for def_pair in inner_pair.into_inner() {
+                        match def_pair.as_rule() {
+                            Rule::spec_route => {
+                                let route = parse_route_def(def_pair)?;
+                                namespace.routes.push(route);
+                            }
+                            Rule::spec_struct => {
+                                let struct_def = parse_struct_def(def_pair)?;
+                                namespace.structs.push(struct_def);
+                            }
+                            Rule::spec_union => {
+                                let union_def = parse_union_def(def_pair)?;
+                                namespace.unions.push(union_def);
+                            }
+                            Rule::spec_alias => {
+                                let (name, alias_type) = parse_alias_def(def_pair)?;
+                                namespace.aliases.insert(name, alias_type);
+                            }
+                            _ => {}
+                        }
+                    }
                 }
                 _ => {}
             }
@@ -201,11 +209,11 @@ pub fn parse_stone_dsl(content: &str) -> Result<StoneNamespace> {
 fn parse_namespace_def(pair: Pair<Rule>, namespace: &mut StoneNamespace) -> Result<()> {
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::identifier => {
+            Rule::identity => {
                 namespace.name = inner_pair.as_str().to_string();
             }
-            Rule::quoted_string => {
-                namespace.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            Rule::spec_doc => {
+                namespace.description = Some(parse_doc(inner_pair)?);
             }
             _ => {}
         }
@@ -223,23 +231,33 @@ fn parse_route_def(pair: Pair<Rule>) -> Result<StoneRoute> {
     
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::identifier => {
+            Rule::identity_route => {
                 route.name = inner_pair.as_str().to_string();
             }
-            Rule::route_params => {
-                for param_pair in inner_pair.into_inner() {
-                    if let Rule::type_spec = param_pair.as_rule() {
-                        route.params.push(param_pair.as_str().to_string());
-                    }
-                }
+            Rule::type_all => {
+                // Routes have 3 type_all parameters inline
+                route.params.push(inner_pair.as_str().to_string());
             }
-            Rule::quoted_string => {
-                route.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            Rule::spec_doc => {
+                route.description = Some(parse_doc(inner_pair)?);
             }
-            Rule::attrs_def => {
+            Rule::spec_route_attrs => {
                 // Parse attributes block
-                for _attr_pair in inner_pair.into_inner() {
-                    // Parse key-value pairs - TODO: implement
+                for attr_pair in inner_pair.into_inner() {
+                    if let Rule::spec_route_attr = attr_pair.as_rule() {
+                        let mut key = String::new();
+                        let mut value = String::new();
+                        for attr_inner in attr_pair.into_inner() {
+                            match attr_inner.as_rule() {
+                                Rule::identity => key = attr_inner.as_str().to_string(),
+                                Rule::literal => value = attr_inner.as_str().to_string(),
+                                _ => {}
+                            }
+                        }
+                        if !key.is_empty() {
+                            route.attrs.insert(key, value);
+                        }
+                    }
                 }
             }
             _ => {}
@@ -259,20 +277,20 @@ fn parse_struct_def(pair: Pair<Rule>) -> Result<StoneStruct> {
     
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::identifier => {
+            Rule::identity => {
                 struct_def.name = inner_pair.as_str().to_string();
             }
-            Rule::quoted_string => {
-                struct_def.description = Some(inner_pair.as_str().trim_matches('"').to_string());
-            }
-            Rule::struct_extends => {
-                for extend_pair in inner_pair.into_inner() {
-                    if let Rule::namespace_path = extend_pair.as_rule() {
-                        struct_def.extends = Some(extend_pair.as_str().to_string());
+            Rule::spec_struct_extends => {
+                for extends_pair in inner_pair.into_inner() {
+                    if let Rule::identity_ref = extends_pair.as_rule() {
+                        struct_def.extends = Some(extends_pair.as_str().to_string());
                     }
                 }
             }
-            Rule::field_def => {
+            Rule::spec_doc => {
+                struct_def.description = Some(parse_doc(inner_pair)?);
+            }
+            Rule::spec_struct_field => {
                 let field = parse_field_def(inner_pair)?;
                 struct_def.fields.push(field);
             }
@@ -291,19 +309,26 @@ fn parse_union_def(pair: Pair<Rule>) -> Result<StoneUnion> {
         description: None,
     };
     
+    // Check if it starts with "union_closed" or "union"
+    let rule_str = pair.as_str();
+    if rule_str.starts_with("union_closed") {
+        union_def.closed = true;
+    }
+    
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::keyword_union_closed => {
-                union_def.closed = true;
-            }
-            Rule::identifier => {
+            Rule::identity => {
                 union_def.name = inner_pair.as_str().to_string();
             }
-            Rule::quoted_string => {
-                union_def.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            Rule::spec_doc => {
+                union_def.description = Some(parse_doc(inner_pair)?);
             }
-            Rule::union_variant => {
-                let variant = parse_union_variant(inner_pair)?;
+            Rule::spec_union_tag => {
+                let variant = parse_union_tag(inner_pair)?;
+                union_def.variants.push(variant);
+            }
+            Rule::spec_union_void_tag => {
+                let variant = parse_union_void_tag(inner_pair)?;
                 union_def.variants.push(variant);
             }
             _ => {}
@@ -323,15 +348,15 @@ fn parse_field_def(pair: Pair<Rule>) -> Result<StoneField> {
     
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::identifier => {
+            Rule::identity => {
                 field.name = inner_pair.as_str().to_string();
             }
-            Rule::type_spec => {
+            Rule::type_all_optional => {
                 field.field_type = inner_pair.as_str().to_string();
                 field.optional = field.field_type.ends_with('?');
             }
-            Rule::quoted_string => {
-                field.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            Rule::spec_doc => {
+                field.description = Some(parse_doc(inner_pair)?);
             }
             _ => {}
         }
@@ -340,7 +365,7 @@ fn parse_field_def(pair: Pair<Rule>) -> Result<StoneField> {
     Ok(field)
 }
 
-fn parse_union_variant(pair: Pair<Rule>) -> Result<StoneVariant> {
+fn parse_union_tag(pair: Pair<Rule>) -> Result<StoneVariant> {
     let mut variant = StoneVariant {
         name: String::new(),
         variant_type: None,
@@ -349,14 +374,36 @@ fn parse_union_variant(pair: Pair<Rule>) -> Result<StoneVariant> {
     
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::identifier => {
+            Rule::identity => {
                 variant.name = inner_pair.as_str().to_string();
             }
-            Rule::type_spec => {
+            Rule::type_all_optional => {
                 variant.variant_type = Some(inner_pair.as_str().to_string());
             }
-            Rule::quoted_string => {
-                variant.description = Some(inner_pair.as_str().trim_matches('"').to_string());
+            Rule::spec_doc => {
+                variant.description = Some(parse_doc(inner_pair)?);
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(variant)
+}
+
+fn parse_union_void_tag(pair: Pair<Rule>) -> Result<StoneVariant> {
+    let mut variant = StoneVariant {
+        name: String::new(),
+        variant_type: None,
+        description: None,
+    };
+    
+    for inner_pair in pair.into_inner() {
+        match inner_pair.as_rule() {
+            Rule::identity => {
+                variant.name = inner_pair.as_str().to_string();
+            }
+            Rule::spec_doc => {
+                variant.description = Some(parse_doc(inner_pair)?);
             }
             _ => {}
         }
@@ -371,10 +418,10 @@ fn parse_alias_def(pair: Pair<Rule>) -> Result<(String, String)> {
     
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::identifier => {
+            Rule::identity => {
                 name = inner_pair.as_str().to_string();
             }
-            Rule::type_spec => {
+            Rule::type_all_optional => {
                 alias_type = inner_pair.as_str().to_string();
             }
             _ => {}
@@ -382,6 +429,19 @@ fn parse_alias_def(pair: Pair<Rule>) -> Result<(String, String)> {
     }
     
     Ok((name, alias_type))
+}
+
+fn parse_doc(pair: Pair<Rule>) -> Result<String> {
+    for inner_pair in pair.into_inner() {
+        if let Rule::literal_string = inner_pair.as_rule() {
+            return Ok(inner_pair.as_str().trim_matches('"').to_string());
+        }
+    }
+    Ok(String::new())
+}
+
+fn parse_union_void_variant(pair: Pair<Rule>) -> Result<StoneVariant> {
+    parse_union_void_tag(pair)
 }
 
 fn compare_specifications(
