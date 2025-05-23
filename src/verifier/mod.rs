@@ -501,6 +501,11 @@ fn compare_specifications(
                 ));
             }
         }
+        
+        // Verify all schema references are available
+        if let Some(ref_results) = verify_schema_references(openapi, verbose) {
+            results.extend(ref_results);
+        }
     }
     
     // Check for extra OpenAPI paths not in Stone
@@ -563,6 +568,155 @@ pub fn report_results(results: &[ComparisonResult]) {
     if missing == 0 && extra == 0 && mismatches == 0 {
         println!();
         println!("{}", "✓ All checks passed!".green().bold());
+    }
+}
+
+/// Verifies that all schema references in the OpenAPI specification are valid
+/// Returns a vector of ComparisonResult for each reference check
+fn verify_schema_references(openapi: &OpenApiSpec, verbose: bool) -> Option<Vec<ComparisonResult>> {
+    // First get a reference to the components to avoid borrowing issues
+    let components = match &openapi.components {
+        Some(c) => c,
+        None => return None,
+    };
+    
+    // Then get a reference to the schemas
+    let schemas = match &components.schemas {
+        Some(s) => s,
+        None => return None,
+    };
+    
+    let mut results = Vec::new();
+    let mut refs_checked = 0;
+    let mut refs_valid = 0;
+    let mut refs_invalid = 0;
+    
+    // Create a set of all available schema names
+    let available_schemas: std::collections::HashSet<&String> = schemas.keys().collect();
+    
+    // Check references in schemas
+    for (schema_name, schema) in schemas.iter() {
+        collect_and_check_references(schema, &available_schemas, &mut results, 
+            &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, schema_name);
+    }
+    
+    // Check references in paths
+    for (path, methods) in &openapi.paths {
+        for (method, operation) in methods {
+            // Check request body schema
+            if let Some(req_body) = &operation.request_body {
+                for (_content_type, media_type) in &req_body.content {
+                    if let Some(schema) = &media_type.schema {
+                        let context = format!("Request body in {}/{}", path, method);
+                        collect_and_check_references(schema, &available_schemas, &mut results, 
+                            &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, &context);
+                    }
+                }
+            }
+            
+            // Check response schemas
+            for (status, response) in &operation.responses {
+                if let Some(content) = &response.content {
+                    for (_content_type, media_type) in content {
+                        if let Some(schema) = &media_type.schema {
+                            let context = format!("Response {} in {}/{}", status, path, method);
+                            collect_and_check_references(schema, &available_schemas, &mut results, 
+                                &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, &context);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if verbose {
+        println!("Schema Reference Verification Summary:");
+        println!("  ✓ Checked {} references", refs_checked);
+        println!("  ✓ Valid: {}", refs_valid.to_string().green());
+        
+        if refs_invalid > 0 {
+            println!("  ✗ Invalid: {}", refs_invalid.to_string().red());
+        } else {
+            println!("  ✓ No invalid references found");
+        }
+    }
+    
+    Some(results)
+}
+
+/// Recursively collects and checks all schema references
+fn collect_and_check_references(
+    schema: &OpenApiSchema,
+    available_schemas: &std::collections::HashSet<&String>,
+    results: &mut Vec<ComparisonResult>,
+    refs_checked: &mut usize,
+    refs_valid: &mut usize,
+    refs_invalid: &mut usize,
+    verbose: bool,
+    context: &str,
+) {
+    match schema {
+        OpenApiSchema::Reference { reference } => {
+            *refs_checked += 1;
+            
+            // Extract schema name from reference
+            if let Some(schema_name) = extract_schema_name(reference) {
+                if available_schemas.contains(&schema_name) {
+                    *refs_valid += 1;
+                    if verbose {
+                        println!("✓ Reference to {} is valid", schema_name.green());
+                    }
+                    results.push(ComparisonResult::Match);
+                } else {
+                    *refs_invalid += 1;
+                    let error_msg = format!("Reference to schema '{}' not found (in {})", schema_name, context);
+                    if verbose {
+                        println!("✗ {}", error_msg.red());
+                    }
+                    results.push(ComparisonResult::Missing(error_msg));
+                }
+            } else {
+                *refs_invalid += 1;
+                let error_msg = format!("Invalid reference format: '{}' (in {})", reference, context);
+                if verbose {
+                    println!("✗ {}", error_msg.red());
+                }
+                results.push(ComparisonResult::Mismatch(error_msg));
+            }
+        },
+        OpenApiSchema::Object { properties, all_of, items, .. } => {
+            // Check properties
+            if let Some(props) = properties {
+                for (_, prop_schema) in props {
+                    collect_and_check_references(prop_schema, available_schemas, results, 
+                        refs_checked, refs_valid, refs_invalid, verbose, context);
+                }
+            }
+            
+            // Check allOf
+            if let Some(all_of_schemas) = all_of {
+                for schema in all_of_schemas {
+                    collect_and_check_references(schema, available_schemas, results, 
+                        refs_checked, refs_valid, refs_invalid, verbose, context);
+                }
+            }
+            
+            // Check items for arrays
+            if let Some(item_schema) = items {
+                collect_and_check_references(item_schema, available_schemas, results, 
+                    refs_checked, refs_valid, refs_invalid, verbose, context);
+            }
+        }
+    }
+}
+
+/// Extracts the schema name from a reference string
+/// For example, from "#/components/schemas/User" extracts "User"
+fn extract_schema_name(reference: &str) -> Option<String> {
+    if reference.starts_with("#/components/schemas/") {
+        Some(reference.trim_start_matches("#/components/schemas/").to_string())
+    } else {
+        None
     }
 }
 
@@ -713,5 +867,126 @@ mod tests {
         
         // report_results prints to stdout, so we just ensure it doesn't panic
         report_results(&results);
+    }
+    
+    #[test]
+    fn test_extract_schema_name() {
+        assert_eq!(
+            extract_schema_name("#/components/schemas/User"),
+            Some("User".to_string())
+        );
+        
+        assert_eq!(
+            extract_schema_name("#/components/schemas/Complex.Type"),
+            Some("Complex.Type".to_string())
+        );
+        
+        assert_eq!(
+            extract_schema_name("invalid/reference"),
+            None
+        );
+    }
+    
+    #[test]
+    fn test_verify_schema_references() {
+        // Create a simple OpenAPI spec with valid and invalid references
+        let mut schemas = HashMap::new();
+        schemas.insert(
+            "User".to_string(),
+            OpenApiSchema::Object {
+                schema_type: Some("object".to_string()),
+                properties: Some(HashMap::new()),
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+            },
+        );
+        
+        let components = OpenApiComponents {
+            schemas: Some(schemas),
+        };
+        
+        let mut paths = HashMap::new();
+        let mut methods = HashMap::new();
+        let mut responses = HashMap::new();
+        
+        // Add a valid reference
+        let mut content = HashMap::new();
+        content.insert(
+            "application/json".to_string(),
+            OpenApiMediaType {
+                schema: Some(OpenApiSchema::Reference {
+                    reference: "#/components/schemas/User".to_string(),
+                }),
+            },
+        );
+        
+        responses.insert(
+            "200".to_string(),
+            OpenApiResponse {
+                description: "Success".to_string(),
+                content: Some(content),
+            },
+        );
+        
+        // Add an invalid reference
+        let mut error_content = HashMap::new();
+        error_content.insert(
+            "application/json".to_string(),
+            OpenApiMediaType {
+                schema: Some(OpenApiSchema::Reference {
+                    reference: "#/components/schemas/NonExistent".to_string(),
+                }),
+            },
+        );
+        
+        responses.insert(
+            "400".to_string(),
+            OpenApiResponse {
+                description: "Error".to_string(),
+                content: Some(error_content),
+            },
+        );
+        
+        methods.insert(
+            "post".to_string(),
+            OpenApiOperation {
+                operation_id: Some("testOperation".to_string()),
+                summary: None,
+                description: None,
+                request_body: None,
+                responses,
+            },
+        );
+        
+        paths.insert("/test/path".to_string(), methods);
+        
+        let openapi_spec = OpenApiSpec {
+            openapi: "3.0.3".to_string(),
+            info: OpenApiInfo {
+                title: "Test API".to_string(),
+                description: None,
+                version: "1.0.0".to_string(),
+            },
+            paths,
+            components: Some(components),
+        };
+        
+        let results = verify_schema_references(&openapi_spec, false);
+        assert!(results.is_some());
+        
+        let results = results.unwrap();
+        
+        // Count missing references
+        let missing_count = results.iter().filter(|r| {
+            if let ComparisonResult::Missing(msg) = r {
+                msg.contains("NonExistent")
+            } else {
+                false
+            }
+        }).count();
+        
+        assert_eq!(missing_count, 1, "Should have one missing reference");
     }
 }

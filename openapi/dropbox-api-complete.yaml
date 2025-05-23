@@ -11365,24 +11365,19 @@ components:
         propertyName: .tag
         mapping:
           invalid_root: '#/components/schemas/RootInfo'
-    NamespaceId:
+    OptionalNamePart:
+      type: string
+      maxLength: 100
+    SessionId:
       type: string
     SharedFolderId:
       allOf:
       - $ref: '#/components/schemas/NamespaceId'
-    OptionalNamePart:
-      type: string
-      maxLength: 100
-    DisplayNameLegacy:
-      type: string
-    LanguageCode:
-      type: string
-      minLength: 2
-    SessionId:
-      type: string
-    Date:
+    DropboxTimestamp:
       type: string
       format: date-time
+    DisplayName:
+      type: string
     NamePart:
       type: string
       minLength: 1
@@ -11390,11 +11385,16 @@ components:
     EmailAddress:
       type: string
       maxLength: 255
-    DisplayName:
-      type: string
-    DropboxTimestamp:
+    Date:
       type: string
       format: date-time
+    DisplayNameLegacy:
+      type: string
+    NamespaceId:
+      type: string
+    LanguageCode:
+      type: string
+      minLength: 2
     DeleteManualContactsArg:
       type: object
       properties:
@@ -13815,19 +13815,14 @@ components:
         propertyName: .tag
         mapping:
           path: '#/components/schemas/LookupError'
-    PathR:
-      type: string
-    CopyBatchArg:
-      allOf:
-      - $ref: '#/components/schemas/RelocationBatchArgBase'
-    WritePath:
-      type: string
     SearchV2Cursor:
       type: string
       minLength: 1
     FileId:
       type: string
       minLength: 4
+    WritePath:
+      type: string
     Rev:
       allOf:
       - $ref: '#/components/schemas/Rev'
@@ -13835,25 +13830,30 @@ components:
       type: string
       minLength: 64
       maxLength: 64
-    Id:
+    CopyBatchArg:
       allOf:
-      - $ref: '#/components/schemas/Id'
+      - $ref: '#/components/schemas/RelocationBatchArgBase'
     SharedLinkUrl:
       type: string
-    PathROrId:
-      type: string
-    MalformedPathError:
-      type: string
-      nullable: true
     ListFolderCursor:
       type: string
       minLength: 1
-    Path:
+    Id:
+      allOf:
+      - $ref: '#/components/schemas/Id'
+    PathROrId:
       type: string
     ReadPath:
       allOf:
       - $ref: '#/components/schemas/ReadPath'
+    MalformedPathError:
+      type: string
+      nullable: true
     WritePathOrId:
+      type: string
+    Path:
+      type: string
+    PathR:
       type: string
     Route:
       type: object
@@ -14477,10 +14477,10 @@ components:
           - reset
       required:
       - .tag
-    PropertiesSearchCursor:
+    TemplateId:
       type: string
       minLength: 1
-    TemplateId:
+    PropertiesSearchCursor:
       type: string
       minLength: 1
     JoinTeamDetails:
@@ -27186,11 +27186,11 @@ components:
       description: The type of the event.
     AppId:
       type: string
-    IpAddress:
+    FilePath:
       type: string
     RequestId:
       type: string
-    FilePath:
+    IpAddress:
       type: string
     UserInfoArgs:
       type: object
@@ -27793,12 +27793,12 @@ components:
       required:
       - .tag
       description: check documentation for ResolvedVisibility.
-    GetSharedLinkFileArg:
-      allOf:
-      - $ref: '#/components/schemas/GetSharedLinkMetadataArg'
     TeamInfo:
       allOf:
       - $ref: '#/components/schemas/Team'
+    GetSharedLinkFileArg:
+      allOf:
+      - $ref: '#/components/schemas/GetSharedLinkMetadataArg'
     PollArg:
       type: object
       properties:
@@ -28815,13 +28815,13 @@ components:
           - user_data_already_transferred
       required:
       - .tag
+    TeamMemberRoleId:
+      type: string
+      maxLength: 128
     MembersGetInfoResult:
       type: array
       items:
         $ref: '#/components/schemas/MembersGetInfoItem'
-    TeamMemberRoleId:
-      type: string
-      maxLength: 128
     SecondaryEmail:
       allOf:
       - $ref: '#/components/schemas/SecondaryEmail'
@@ -29102,23 +29102,23 @@ components:
     LegalHoldsGetPolicyResult:
       allOf:
       - $ref: '#/components/schemas/LegalHoldPolicy'
-    LegalHoldId:
-      type: string
-    ListHeldRevisionCursor:
-      type: string
-      minLength: 1
     LegalHoldsPolicyUpdateResult:
       allOf:
       - $ref: '#/components/schemas/LegalHoldPolicy'
+    LegalHoldId:
+      type: string
+    LegalHoldPolicyDescription:
+      type: string
+      maxLength: 501
+    ListHeldRevisionCursor:
+      type: string
+      minLength: 1
     LegalHoldsPolicyCreateResult:
       allOf:
       - $ref: '#/components/schemas/LegalHoldPolicy'
     LegalHoldPolicyName:
       type: string
       maxLength: 140
-    LegalHoldPolicyDescription:
-      type: string
-      maxLength: 501
     GroupSummary:
       type: object
       properties:
@@ -29182,18 +29182,18 @@ components:
       required:
       - .tag
       description: The type of the space limit imposed on a team member.
-    ResellerId:
+    TeamMemberId:
+      type: string
+    TeamId:
+      type: string
+    GroupId:
       type: string
     MemberExternalId:
       type: string
       maxLength: 64
-    GroupId:
-      type: string
-    TeamId:
-      type: string
     GroupExternalId:
       type: string
-    TeamMemberId:
+    ResellerId:
       type: string
     FolderPolicy:
       type: object
