@@ -146,6 +146,8 @@ pub enum ComparisonResult {
     Missing(String),
     Extra(String),
     Mismatch(String),
+    MissingInStone(String),
+    UndefinedReference(String),
 }
 
 pub fn verify_stone_openapi(stone_path: &str, openapi_path: &str, verbose: bool) -> Result<Vec<ComparisonResult>> {
@@ -165,6 +167,101 @@ pub fn verify_stone_openapi(stone_path: &str, openapi_path: &str, verbose: bool)
     
     // Compare
     let results = compare_specifications(&stone_namespace, &openapi_spec, verbose);
+    
+    Ok(results)
+}
+
+/// Verifies an OpenAPI specification against a directory of Stone files
+/// This is useful for checking if any OpenAPI definitions are missing in Stone
+pub fn verify_openapi_against_stone_dir(openapi_path: &str, stone_dir: &str, verbose: bool) -> Result<Vec<ComparisonResult>> {
+    use std::path::Path;
+    
+    // Parse OpenAPI
+    let openapi_content = fs::read_to_string(openapi_path)
+        .with_context(|| format!("Failed to read OpenAPI file: {}", openapi_path))?;
+    
+    let openapi_spec: OpenApiSpec = serde_yaml::from_str(&openapi_content)
+        .with_context(|| "Failed to parse OpenAPI YAML")?;
+    
+    // Get all schema names from OpenAPI
+    let openapi_schemas = match &openapi_spec.components {
+        Some(components) => match &components.schemas {
+            Some(schemas) => schemas.keys().collect::<Vec<_>>(),
+            None => Vec::new(),
+        },
+        None => Vec::new(),
+    };
+    
+    if verbose {
+        println!("Found {} schemas in OpenAPI spec", openapi_schemas.len());
+    }
+    
+    // Parse all Stone files in the directory
+    let stone_dir_path = Path::new(stone_dir);
+    if !stone_dir_path.is_dir() {
+        return Err(anyhow::anyhow!("Stone path is not a directory: {}", stone_dir));
+    }
+    
+    let mut stone_types = std::collections::HashSet::new();
+    let mut stone_files_count = 0;
+    
+    // Process all .stone files in the directory (recursively)
+    for entry in walkdir::WalkDir::new(stone_dir_path)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|e| e.path().extension().map_or(false, |ext| ext == "stone")) {
+            
+        stone_files_count += 1;
+        let stone_content = fs::read_to_string(entry.path())
+            .with_context(|| format!("Failed to read Stone file: {}", entry.path().display()))?;
+        
+        if verbose {
+            println!("Parsing Stone file: {}", entry.path().display());
+        }
+        
+        // Try to parse the Stone file
+        match parse_stone_dsl(&stone_content) {
+            Ok(namespace) => {
+                // Add all struct names to the set
+                for stone_struct in &namespace.structs {
+                    stone_types.insert(stone_struct.name.clone());
+                }
+                
+                // Add all union names to the set
+                for union in &namespace.unions {
+                    stone_types.insert(union.name.clone());
+                }
+                
+                // Add all aliases to the set
+                for (alias_name, _) in &namespace.aliases {
+                    stone_types.insert(alias_name.clone());
+                }
+            },
+            Err(e) => {
+                // Just warn about parse errors but continue
+                if verbose {
+                    println!("Warning: Failed to parse Stone file {}: {}", entry.path().display(), e);
+                }
+            }
+        }
+    }
+    
+    if verbose {
+        println!("Processed {} Stone files", stone_files_count);
+        println!("Found {} unique types in Stone files", stone_types.len());
+    }
+    
+    // Compare OpenAPI schemas with Stone types
+    let mut results = Vec::new();
+    
+    // Check for OpenAPI schemas missing in Stone
+    for schema_name in openapi_schemas {
+        if !stone_types.contains(schema_name) {
+            results.push(ComparisonResult::MissingInStone(
+                format!("Schema '{}' in OpenAPI is not found in any Stone file", schema_name)
+            ));
+        }
+    }
     
     Ok(results)
 }
@@ -534,6 +631,8 @@ pub fn report_results(results: &[ComparisonResult]) {
     let mut mismatches = 0;
     let mut missing = 0;
     let mut extra = 0;
+    let mut missing_in_stone = 0;
+    let mut undefined_refs = 0;
     
     println!("{}", "Comparison Results:".yellow().bold());
     println!();
@@ -555,6 +654,14 @@ pub fn report_results(results: &[ComparisonResult]) {
                 mismatches += 1;
                 println!("{} {}", "MISMATCH:".yellow().bold(), msg);
             }
+            ComparisonResult::MissingInStone(msg) => {
+                missing_in_stone += 1;
+                println!("{} {}", "MISSING IN STONE:".magenta().bold(), msg);
+            }
+            ComparisonResult::UndefinedReference(msg) => {
+                undefined_refs += 1;
+                println!("{} {}", "UNDEFINED REFERENCE:".red().bold(), msg);
+            }
         }
     }
     
@@ -564,8 +671,10 @@ pub fn report_results(results: &[ComparisonResult]) {
     println!("  {} Missing", missing.to_string().red());
     println!("  {} Extra", extra.to_string().blue());
     println!("  {} Mismatches", mismatches.to_string().yellow());
+    println!("  {} Missing in Stone", missing_in_stone.to_string().magenta());
+    println!("  {} Undefined References", undefined_refs.to_string().red());
     
-    if missing == 0 && extra == 0 && mismatches == 0 {
+    if missing == 0 && extra == 0 && mismatches == 0 && missing_in_stone == 0 && undefined_refs == 0 {
         println!();
         println!("{}", "✓ All checks passed!".green().bold());
     }
@@ -573,7 +682,7 @@ pub fn report_results(results: &[ComparisonResult]) {
 
 /// Verifies that all schema references in the OpenAPI specification are valid
 /// Returns a vector of ComparisonResult for each reference check
-fn verify_schema_references(openapi: &OpenApiSpec, verbose: bool) -> Option<Vec<ComparisonResult>> {
+pub fn verify_schema_references(openapi: &OpenApiSpec, verbose: bool) -> Option<Vec<ComparisonResult>> {
     // First get a reference to the components to avoid borrowing issues
     let components = match &openapi.components {
         Some(c) => c,
@@ -594,10 +703,14 @@ fn verify_schema_references(openapi: &OpenApiSpec, verbose: bool) -> Option<Vec<
     // Create a set of all available schema names
     let available_schemas: std::collections::HashSet<&String> = schemas.keys().collect();
     
+    // Also track referenced schemas to check for undefined references
+    let mut referenced_schemas = std::collections::HashSet::new();
+    
     // Check references in schemas
     for (schema_name, schema) in schemas.iter() {
         collect_and_check_references(schema, &available_schemas, &mut results, 
-            &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, schema_name);
+            &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, schema_name,
+            &mut referenced_schemas);
     }
     
     // Check references in paths
@@ -609,7 +722,8 @@ fn verify_schema_references(openapi: &OpenApiSpec, verbose: bool) -> Option<Vec<
                     if let Some(schema) = &media_type.schema {
                         let context = format!("Request body in {}/{}", path, method);
                         collect_and_check_references(schema, &available_schemas, &mut results, 
-                            &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, &context);
+                            &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, &context,
+                            &mut referenced_schemas);
                     }
                 }
             }
@@ -621,7 +735,8 @@ fn verify_schema_references(openapi: &OpenApiSpec, verbose: bool) -> Option<Vec<
                         if let Some(schema) = &media_type.schema {
                             let context = format!("Response {} in {}/{}", status, path, method);
                             collect_and_check_references(schema, &available_schemas, &mut results, 
-                                &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, &context);
+                                &mut refs_checked, &mut refs_valid, &mut refs_invalid, verbose, &context,
+                                &mut referenced_schemas);
                         }
                     }
                 }
@@ -641,6 +756,15 @@ fn verify_schema_references(openapi: &OpenApiSpec, verbose: bool) -> Option<Vec<
         }
     }
     
+    // Check for any referenced schemas that don't exist in the components section
+    for schema_name in &referenced_schemas {
+        if !available_schemas.contains(schema_name) {
+            results.push(ComparisonResult::UndefinedReference(
+                format!("Schema '{}' is referenced but not defined in the components section", schema_name)
+            ));
+        }
+    }
+    
     Some(results)
 }
 
@@ -654,6 +778,7 @@ fn collect_and_check_references(
     refs_invalid: &mut usize,
     verbose: bool,
     context: &str,
+    referenced_schemas: &mut std::collections::HashSet<String>,
 ) {
     match schema {
         OpenApiSchema::Reference { reference } => {
@@ -661,6 +786,9 @@ fn collect_and_check_references(
             
             // Extract schema name from reference
             if let Some(schema_name) = extract_schema_name(reference) {
+                // Add to referenced schemas set
+                referenced_schemas.insert(schema_name.clone());
+                
                 if available_schemas.contains(&schema_name) {
                     *refs_valid += 1;
                     if verbose {
@@ -673,7 +801,7 @@ fn collect_and_check_references(
                     if verbose {
                         println!("✗ {}", error_msg.red());
                     }
-                    results.push(ComparisonResult::Missing(error_msg));
+                    results.push(ComparisonResult::UndefinedReference(error_msg));
                 }
             } else {
                 *refs_invalid += 1;
@@ -689,7 +817,7 @@ fn collect_and_check_references(
             if let Some(props) = properties {
                 for (_, prop_schema) in props {
                     collect_and_check_references(prop_schema, available_schemas, results, 
-                        refs_checked, refs_valid, refs_invalid, verbose, context);
+                        refs_checked, refs_valid, refs_invalid, verbose, context, referenced_schemas);
                 }
             }
             
@@ -697,14 +825,14 @@ fn collect_and_check_references(
             if let Some(all_of_schemas) = all_of {
                 for schema in all_of_schemas {
                     collect_and_check_references(schema, available_schemas, results, 
-                        refs_checked, refs_valid, refs_invalid, verbose, context);
+                        refs_checked, refs_valid, refs_invalid, verbose, context, referenced_schemas);
                 }
             }
             
             // Check items for arrays
             if let Some(item_schema) = items {
                 collect_and_check_references(item_schema, available_schemas, results, 
-                    refs_checked, refs_valid, refs_invalid, verbose, context);
+                    refs_checked, refs_valid, refs_invalid, verbose, context, referenced_schemas);
             }
         }
     }
@@ -745,17 +873,23 @@ mod tests {
             ComparisonResult::Extra("field2".to_string()),
             ComparisonResult::Mismatch("type mismatch".to_string()),
             ComparisonResult::Missing("field3".to_string()),
+            ComparisonResult::MissingInStone("asyncPollError".to_string()),
+            ComparisonResult::UndefinedReference("asyncPollError".to_string()),
         ];
         
         let mut missing = 0;
         let mut extra = 0;
         let mut mismatches = 0;
+        let mut missing_in_stone = 0;
+        let mut undefined_refs = 0;
         
         for result in &results {
             match result {
                 ComparisonResult::Missing(_) => missing += 1,
                 ComparisonResult::Extra(_) => extra += 1,
                 ComparisonResult::Mismatch(_) => mismatches += 1,
+                ComparisonResult::MissingInStone(_) => missing_in_stone += 1,
+                ComparisonResult::UndefinedReference(_) => undefined_refs += 1,
                 ComparisonResult::Match => {},
             }
         }
@@ -763,6 +897,8 @@ mod tests {
         assert_eq!(missing, 2);
         assert_eq!(extra, 1);
         assert_eq!(mismatches, 1);
+        assert_eq!(missing_in_stone, 1);
+        assert_eq!(undefined_refs, 1);
     }
     
     #[test]

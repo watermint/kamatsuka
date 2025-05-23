@@ -97,6 +97,21 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    
+    /// Check for OpenAPI definitions missing in Stone files
+    CheckMissingDefinitions {
+        /// Path to OpenAPI YAML file
+        #[arg(short, long)]
+        openapi: String,
+        
+        /// Path to directory containing Stone files
+        #[arg(short, long)]
+        stone_dir: String,
+        
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -119,6 +134,9 @@ fn main() -> Result<()> {
         }
         Commands::ValidateOpenapi { openapi, verbose } => {
             validate_openapi_command(openapi, *verbose)
+        }
+        Commands::CheckMissingDefinitions { openapi, stone_dir, verbose } => {
+            check_missing_definitions_command(openapi, stone_dir, *verbose)
         }
     }
 }
@@ -313,6 +331,38 @@ fn init_logging() {
     println!("Logging to: {}", log_file_name.green());
 }
 
+fn check_missing_definitions_command(openapi_path: &str, stone_dir: &str, verbose: bool) -> Result<()> {
+    println!("{}", "Checking for OpenAPI Definitions Missing in Stone".green().bold());
+    println!("OpenAPI: {}", openapi_path.cyan());
+    println!("Stone Directory: {}", stone_dir.cyan());
+    println!();
+    
+    info!("Starting missing definitions check for OpenAPI: {}, Stone Dir: {}", openapi_path, stone_dir);
+    
+    // Verify OpenAPI against Stone directory
+    let results = verifier::verify_openapi_against_stone_dir(openapi_path, stone_dir, verbose)
+        .with_context(|| "Failed to check missing definitions")?;
+    
+    // Report results
+    verifier::report_results(&results);
+    
+    // Log summary
+    let missing_in_stone = results.iter().filter(|r| matches!(r, verifier::ComparisonResult::MissingInStone(_))).count();
+    info!("Found {} definitions in OpenAPI missing from Stone files", missing_in_stone);
+    
+    if missing_in_stone > 0 {
+        println!();
+        println!("{}", "⚠️  Some OpenAPI definitions are missing in Stone files".yellow().bold());
+        println!("   These may be internal types or generated types not explicitly defined in Stone.");
+        println!("   Review the list above to determine if any of these should be added to Stone definitions.");
+    } else {
+        println!();
+        println!("{}", "✓ All OpenAPI definitions are present in Stone files!".green().bold());
+    }
+    
+    Ok(())
+}
+
 fn validate_openapi_command(openapi_path: &str, verbose: bool) -> Result<()> {
     println!("{}", "OpenAPI Specification Validation".green().bold());
     println!("File: {}", openapi_path.cyan());
@@ -398,12 +448,38 @@ fn validate_openapi_command(openapi_path: &str, verbose: bool) -> Result<()> {
         return Err(anyhow::anyhow!("Empty required field: info.version"));
     }
     
-    // Check for schema references (basic count)
+    // Check for schema references (validate them all)
     let reference_count = openapi_content.matches("#/components/schemas/").count();
     
+    // Parse the YAML for proper schema reference validation
+    let openapi_spec: verifier::OpenApiSpec = serde_yaml::from_str(&openapi_content)
+        .with_context(|| "Failed to parse OpenAPI specification for reference validation")?;
+    
+    // Use our enhanced schema reference verification
+    let reference_results = verifier::verify_schema_references(&openapi_spec, false)
+        .unwrap_or_else(|| Vec::new());
+    
+    // Count undefined references
+    let undefined_refs = reference_results.iter()
+        .filter(|r| matches!(r, verifier::ComparisonResult::UndefinedReference(_)))
+        .collect::<Vec<_>>();
+    
+    if undefined_refs.is_empty() {
+        if verbose {
+            println!("✓ Schema references validated ({} references found)", reference_count);
+        }
+    } else {
+        println!("✗ Found {} undefined schema references", undefined_refs.len());
+        
+        for result in &undefined_refs {
+            if let verifier::ComparisonResult::UndefinedReference(msg) = result {
+                println!("  - {}", msg.red());
+            }
+        }
+    }
+    
     if verbose {
-        println!("✅ Schema references validated ({} references found)", reference_count);
-        println!("✅ Required fields present");
+        println!("✓ Required fields present");
     }
     
     // Print summary
