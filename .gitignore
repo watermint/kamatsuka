@@ -5,6 +5,7 @@
 # IDE files
 .vscode/
 .idea/
+*.iml
 
 # System files
 .DS_Store

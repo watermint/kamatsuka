@@ -8,7 +8,11 @@ info:
     url: https://www.dropbox.com/developers
 servers:
 - url: https://api.dropboxapi.com/2
-  description: Dropbox API v2
+  description: Dropbox API v2 - API Server
+- url: https://content.dropboxcontent.com/2
+  description: Dropbox API v2 - Content Server
+- url: https://notify.dropboxnotify.com/2
+  description: Dropbox API v2 - Notify Server
 paths:
   /users/get_account:
     post:
@@ -36,6 +40,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetAccountError'
+      description: Get information about a user's account.
+      x-stone-allow-app-folder: true
   /users/get_current_account:
     post:
       summary: Get information about the current user's account.
@@ -50,6 +56,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FullAccount'
+      description: Get information about the current user's account.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /users/get_space_usage:
     post:
       summary: Get the space usage information for the current user's account.
@@ -64,6 +73,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SpaceUsage'
+      description: Get the space usage information for the current user's account.
+      x-stone-allow-app-folder: true
   /users/get_account_batch:
     post:
       summary: |-
@@ -92,6 +103,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetAccountBatchError'
+      description: |-
+        Get information about multiple user accounts.  At most 300 accounts may be queried
+            per request.
+      x-stone-allow-app-folder: true
   /users/features/get_values:
     post:
       summary: Get a list of feature values that may be configured for the current account.
@@ -118,6 +133,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserFeaturesGetValuesBatchError'
+      description: Get a list of feature values that may be configured for the current account.
+      x-stone-allow-app-folder: true
   /team/devices/list_member_devices:
     post:
       summary: List all device sessions of a team's member.
@@ -144,6 +161,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListMemberDevicesError'
+      description: List all device sessions of a team's member.
+      x-stone-auth: team
   /team/devices/list_members_devices:
     post:
       summary: |-
@@ -173,6 +192,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListTeamDevicesError'
+      description: |-
+        List all device sessions of a team.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/devices/revoke_device_session:
     post:
       summary: Revoke a device session of a team's member.
@@ -199,6 +223,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeDeviceSessionError'
+      description: Revoke a device session of a team's member.
+      x-stone-auth: team
   /team/devices/revoke_device_session_batch:
     post:
       summary: Revoke a list of device sessions of team members.
@@ -225,6 +251,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeDeviceSessionBatchError'
+      description: Revoke a list of device sessions of team members.
+      x-stone-auth: team
   /team/groups/list:
     post:
       summary: |-
@@ -248,6 +276,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupsListResult'
+      description: |-
+        Lists groups on a team.
+
+            Permission : Team Information.
+      x-stone-auth: team
   /team/groups/list/continue:
     post:
       summary: |-
@@ -278,6 +311,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupsListContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`groups/list`, use this to paginate
+            through all groups.
+
+            Permission : Team Information.
+      x-stone-auth: team
   /team/groups/get_info:
     post:
       summary: |-
@@ -308,6 +347,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupsGetInfoError'
+      description: |-
+        Retrieves information about one or more groups. Note that the optional field
+             :field:`GroupFullInfo.members` is not returned for system-managed groups.
+
+            Permission : Team Information.
+      x-stone-auth: team
   /team/groups/create:
     post:
       summary: |-
@@ -337,6 +382,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupCreateError'
+      description: |-
+        Creates a new, empty group, with a requested name.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/groups/delete:
     post:
       summary: |-
@@ -370,6 +420,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupDeleteError'
+      description: |-
+        Deletes a group.
+
+            The group is deleted immediately. However the revoking of group-owned resources
+            may take additional time.
+            Use the :route:`groups/job_status/get` to determine whether this process has completed.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/groups/update:
     post:
       summary: |-
@@ -399,6 +458,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupUpdateError'
+      description: |-
+        Updates a group's name and/or external ID.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/groups/members/add:
     post:
       summary: |-
@@ -432,6 +496,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupMembersAddError'
+      description: |-
+        Adds members to a group.
+
+            The members are added immediately. However the granting of group-owned resources
+            may take additional time.
+            Use the :route:`groups/job_status/get` to determine whether this process has completed.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/groups/members/remove:
     post:
       summary: |-
@@ -468,6 +541,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupMembersRemoveError'
+      description: |-
+        Removes members from a group.
+
+            The members are removed immediately. However the revoking of group-owned resources
+            may take additional time.
+            Use the :route:`groups/job_status/get` to determine whether this process has completed.
+
+            This method permits removing the only owner of a group, even in cases where this is not
+            possible via the web client.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/groups/members/set_access_type:
     post:
       summary: |-
@@ -497,6 +582,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupMemberSetAccessTypeError'
+      description: |-
+        Sets a member's access type in a group.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/groups/members/list:
     post:
       summary: |-
@@ -526,6 +616,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupSelectorError'
+      description: |-
+        Lists members of a group.
+
+            Permission : Team Information.
+      x-stone-auth: team
   /team/groups/members/list/continue:
     post:
       summary: |-
@@ -556,6 +651,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupsMembersListContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`groups/members/list`, use this to paginate
+            through all members of the group.
+
+            Permission : Team information.
+      x-stone-auth: team
   /team/groups/job_status/get:
     post:
       summary: |-
@@ -588,6 +689,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupsPollError'
+      description: |-
+        Once an async_job_id is returned from :route:`groups/delete`,
+            :route:`groups/members/add` , or :route:`groups/members/remove`
+            use this method to poll the status of granting/revoking
+            group members' access to group-owned resources.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /check/user:
     post:
       summary: |-
@@ -613,6 +722,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EchoResult'
+      description: |-
+        This endpoint performs User Authentication, validating the supplied access token,
+            and returns the supplied string, to allow you to test your code and connection to the
+            Dropbox API. It has no other effect. If you receive an HTTP 200 response with the supplied
+            query, it indicates at least part of the Dropbox API infrastructure is working and that the
+            access token is valid.
+      x-stone-auth: user
+      x-stone-preview: true
+      x-stone-allow-app-folder: true
   /check/app:
     post:
       summary: |-
@@ -638,6 +756,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EchoResult'
+      description: |-
+        This endpoint performs App Authentication, validating the supplied app key and secret,
+            and returns the supplied string, to allow you to test your code and connection to the
+            Dropbox API. It has no other effect. If you receive an HTTP 200 response with the supplied
+            query, it indicates at least part of the Dropbox API infrastructure is working and that the
+            app key and secret valid.
+      x-stone-auth: app
+      x-stone-preview: true
+      x-stone-allow-app-folder: true
   /openid/userinfo:
     post:
       summary: |-
@@ -666,6 +793,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserInfoError'
+      description: |-
+        This route is used for refreshing the info that is found in the id_token during the OIDC flow.
+            This route doesn't require any arguments and will use the scopes approved for the given access token.
+      x-stone-auth: user
+      x-stone-preview: true
+      x-stone-allow-app-folder: true
   /sharing/add_file_member:
     post:
       summary: Adds specified members to a file.
@@ -692,6 +825,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddFileMemberError'
+      description: Adds specified members to a file.
+      x-stone-select-admin-mode: team_admin
   /sharing/update_file_member:
     post:
       summary: Changes a member's access on a shared file.
@@ -718,6 +853,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FileMemberActionError'
+      description: Changes a member's access on a shared file.
+      x-stone-select-admin-mode: team_admin
   /sharing/get_file_metadata:
     post:
       summary: Returns shared file metadata.
@@ -744,6 +881,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetFileMetadataError'
+      description: Returns shared file metadata.
+      x-stone-select-admin-mode: team_admin
   /sharing/get_file_metadata/batch:
     post:
       summary: Returns shared file metadata.
@@ -770,6 +909,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingUserError'
+      description: Returns shared file metadata.
   /sharing/list_file_members:
     post:
       summary: |-
@@ -798,6 +938,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFileMembersError'
+      description: |-
+        Use to obtain the members who have been invited to a file, both inherited
+            and uninherited members.
+      x-stone-select-admin-mode: team_admin
   /sharing/list_file_members/batch:
     post:
       summary: |-
@@ -831,6 +975,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingUserError'
+      description: |-
+        Get members of multiple files at once. The arguments
+            to this route are more limited, and the limit on query result size per file
+            is more strict. To customize the results more, use the individual file
+            endpoint.
+
+            Inherited users and groups are not included in the result, and permissions are not
+            returned for this endpoint.
   /sharing/list_file_members/continue:
     post:
       summary: |-
@@ -860,6 +1012,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFileMembersContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`list_file_members` or
+            :route:`list_file_members/batch`, use this to paginate through all shared
+            file members.
   /sharing/list_received_files:
     post:
       summary: |-
@@ -890,6 +1046,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingUserError'
+      description: |-
+        Returns a list of all files shared with current user.
+
+             Does not include files the user has received via shared folders, and does
+             not include unclaimed invitations.
+      x-stone-select-admin-mode: team_admin
   /sharing/list_received_files/continue:
     post:
       summary: Get more results with a cursor from :route:`list_received_files`.
@@ -916,6 +1078,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFilesContinueError'
+      description: Get more results with a cursor from :route:`list_received_files`.
   /sharing/remove_file_member_2:
     post:
       summary: Removes a specified member from the file.
@@ -942,6 +1105,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemoveFileMemberError'
+      description: Removes a specified member from the file.
+      x-stone-select-admin-mode: team_admin
   /sharing/relinquish_file_membership:
     post:
       summary: |-
@@ -971,6 +1136,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelinquishFileMembershipError'
+      description: |-
+        The current user relinquishes their membership in the designated file.
+            Note that the current user may still have inherited access to this file
+            through the parent folder.
+      x-stone-select-admin-mode: team_admin
   /sharing/unshare_file:
     post:
       summary: Remove all members from this file. Does not remove inherited members.
@@ -997,6 +1167,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnshareFileError'
+      description: Remove all members from this file. Does not remove inherited members.
+      x-stone-select-admin-mode: team_admin
   /team/linked_apps/list_member_linked_apps:
     post:
       summary: |-
@@ -1026,6 +1198,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListMemberAppsError'
+      description: |-
+        List all linked applications of the team member.
+
+            Note, this endpoint does not list any team-linked applications.
+      x-stone-auth: team
   /team/linked_apps/list_members_linked_apps:
     post:
       summary: |-
@@ -1055,6 +1232,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListTeamAppsError'
+      description: |-
+        List all applications linked to the team members' accounts.
+
+            Note, this endpoint doesn't list any team-linked applications.
+      x-stone-auth: team
   /team/linked_apps/revoke_linked_app:
     post:
       summary: Revoke a linked application of the team member.
@@ -1081,6 +1263,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeLinkedAppError'
+      description: Revoke a linked application of the team member.
+      x-stone-auth: team
   /team/linked_apps/revoke_linked_app_batch:
     post:
       summary: Revoke a list of linked applications of the team members.
@@ -1107,6 +1291,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeLinkedAppBatchError'
+      description: Revoke a list of linked applications of the team members.
+      x-stone-auth: team
   /team_log/get_events:
     post:
       summary: |-
@@ -1146,6 +1332,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetTeamEventsError'
+      description: |-
+        Retrieves team events. If the result's :field:`GetTeamEventsResult.has_more` field is
+            :val:`true`, call :route:`get_events/continue` with the returned cursor to retrieve
+            more entries. If end_time is not specified in your request, you may use the returned cursor to
+            poll :route:`get_events/continue` for new events.
+
+            Many attributes note 'may be missing due to historical data gap'.
+
+            Note that the file_operations category and & analogous paper events are not available on all
+            Dropbox Business :link:`plans /business/plans-comparison`.
+            Use :link:`features/get_values /developers/documentation/http/teams#team-features-get_values`
+            to check for this feature.
+
+            Permission : Team Auditing.
+      x-stone-auth: team
   /team_log/get_events/continue:
     post:
       summary: |-
@@ -1175,6 +1376,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetTeamEventsContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`get_events`, use this to paginate through all events.
+
+            Permission : Team Auditing.
+      x-stone-auth: team
   /team/team_folder/create:
     post:
       summary: |-
@@ -1205,6 +1411,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderCreateError'
+      description: |-
+        Creates a new, active, team folder with no members. This endpoint can only be used for teams
+            that do not already have a shared team space.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/rename:
     post:
       summary: |-
@@ -1234,6 +1446,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderRenameError'
+      description: |-
+        Changes an active team folder's name.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/list:
     post:
       summary: |-
@@ -1263,6 +1480,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderListError'
+      description: |-
+        Lists all team folders.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/list/continue:
     post:
       summary: |-
@@ -1293,6 +1515,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderListContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`team_folder/list`, use this to paginate
+            through all team folders.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/get_info:
     post:
       summary: |-
@@ -1316,6 +1544,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/List(TeamFolderGetInfoItem)'
+      description: |-
+        Retrieves metadata for team folders.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/activate:
     post:
       summary: |-
@@ -1345,6 +1578,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderActivateError'
+      description: |-
+        Sets an archived team folder's status to active.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/archive:
     post:
       summary: |-
@@ -1375,6 +1613,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderArchiveError'
+      description: |-
+        Sets an active team folder's status to archived and removes all folder and file members.
+            This endpoint cannot be used for teams that have a shared team space.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/archive/check:
     post:
       summary: |-
@@ -1404,6 +1648,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Returns the status of an asynchronous job for archiving a team folder.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/permanently_delete:
     post:
       summary: |-
@@ -1434,6 +1683,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderPermanentlyDeleteError'
+      description: |-
+        Permanently deletes an archived team folder. This endpoint cannot be used for teams
+            that have a shared team space.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/team_folder/update_sync_settings:
     post:
       summary: Updates the sync settings on a team folder or its contents.  Use of this endpoint requires that the team has team selective sync enabled.
@@ -1460,6 +1715,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamFolderUpdateSyncSettingsError'
+      description: Updates the sync settings on a team folder or its contents.  Use of this endpoint requires that the team has team selective sync enabled.
+      x-stone-auth: team
   /files/tags/add:
     post:
       summary: Add a tag to an item. A tag is a string. The strings are automatically converted to lowercase letters. No more than 20 tags can be added to a given item.
@@ -1486,6 +1743,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddTagError'
+      description: Add a tag to an item. A tag is a string. The strings are automatically converted to lowercase letters. No more than 20 tags can be added to a given item.
+      x-stone-auth: user
+      x-stone-preview: true
   /files/tags/remove:
     post:
       summary: Remove a tag from an item.
@@ -1512,6 +1772,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemoveTagError'
+      description: Remove a tag from an item.
+      x-stone-auth: user
+      x-stone-preview: true
   /files/tags/get:
     post:
       summary: Get list of tags assigned to items.
@@ -1538,6 +1801,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseTagError'
+      description: Get list of tags assigned to items.
+      x-stone-auth: user
+      x-stone-preview: true
   /auth/token/revoke:
     post:
       summary: |-
@@ -1555,6 +1821,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Void'
+      description: |-
+        Disables the access token used to authenticate the call.
+            If there is a corresponding refresh token for the access token,
+            this disables that refresh token, as well as any other access tokens for that refresh token.
+      x-stone-allow-app-folder: true
   /auth/token/from_oauth1:
     post:
       summary: Creates an OAuth 2.0 access token from the supplied OAuth 1.0 access token.
@@ -1581,6 +1852,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenFromOAuth1Error'
+      description: Creates an OAuth 2.0 access token from the supplied OAuth 1.0 access token.
+      x-stone-auth: app
+      x-stone-allow-app-folder: true
   /file_requests/list:2:
     post:
       summary: |-
@@ -1610,6 +1884,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFileRequestsError'
+      description: |-
+        Returns a list of file requests owned by this user. For apps with the app
+            folder permission, this will only return file requests with destinations in
+            the app folder.
+      x-stone-allow-app-folder: true
   /file_requests/list/continue:
     post:
       summary: |-
@@ -1639,6 +1918,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFileRequestsContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`list:2`, use this to paginate through all
+            file requests. The cursor must come from a previous call to :route:`list:2` or
+            :route:`list/continue`.
+      x-stone-allow-app-folder: true
   /file_requests/list:
     post:
       summary: |-
@@ -1662,6 +1946,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFileRequestsError'
+      description: |-
+        Returns a list of file requests owned by this user. For apps with the app
+            folder permission, this will only return file requests with destinations in
+            the app folder.
+      x-stone-allow-app-folder: true
   /file_requests/get:
     post:
       summary: Returns the specified file request.
@@ -1688,6 +1977,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetFileRequestError'
+      description: Returns the specified file request.
+      x-stone-allow-app-folder: true
   /file_requests/create:
     post:
       summary: Creates a file request for this user.
@@ -1714,6 +2005,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateFileRequestError'
+      description: Creates a file request for this user.
+      x-stone-allow-app-folder: true
   /file_requests/update:
     post:
       summary: Update a file request.
@@ -1740,6 +2033,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateFileRequestError'
+      description: Update a file request.
+      x-stone-allow-app-folder: true
   /file_requests/count:
     post:
       summary: |-
@@ -1762,6 +2057,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CountFileRequestsError'
+      description: |-
+        Returns the total number of file requests owned by this user. Includes both open and
+            closed file requests.
+      x-stone-allow-app-folder: true
   /file_requests/delete:
     post:
       summary: Delete a batch of closed file requests.
@@ -1788,6 +2087,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteFileRequestError'
+      description: Delete a batch of closed file requests.
+      x-stone-allow-app-folder: true
   /file_requests/delete_all_closed:
     post:
       summary: Delete all closed file requests owned by this user.
@@ -1808,6 +2109,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteAllClosedFileRequestsError'
+      description: Delete all closed file requests owned by this user.
+      x-stone-allow-app-folder: true
   /paper/docs/folder_users/list:
     post:
       summary: |-
@@ -1841,6 +2144,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Lists the users who are explicitly invited to the Paper folder in which the Paper doc
+            is contained. For private folders all users (including owner) shared on the folder
+            are listed and for team folders all non-team users shared on the folder are returned.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/folder_users/list/continue:
     post:
       summary: |-
@@ -1873,6 +2184,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListUsersCursorError'
+      description: |-
+        Once a cursor has been retrieved from :route:`docs/folder_users/list`, use this to
+            paginate through all users on the Paper folder.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/sharing_policy/get:
     post:
       summary: |-
@@ -1904,6 +2222,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Gets the default sharing policy for the given Paper doc.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/sharing_policy/set:
     post:
       summary: |-
@@ -1939,6 +2263,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Sets the default sharing policy for the given Paper doc. The default 'team_sharing_policy'
+            can be changed only by teams, omit this field for personal accounts.
+
+            The 'public_sharing_policy' policy can't be set to the value 'disabled' because this setting
+            can be changed only via the team admin console.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/archive:
     post:
       summary: |-
@@ -1972,6 +2306,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Marks the given Paper doc as archived.
+
+            This action can be performed or undone by anyone with edit permissions to the doc.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            This endpoint will be retired in September 2020. Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for more information.
   /paper/docs/permanently_delete:
     post:
       summary: |-
@@ -2006,6 +2348,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Permanently deletes the given Paper doc. This operation is final as the doc
+            cannot be recovered.
+
+            This action can be performed only by the doc owner.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/download:
     post:
       summary: |-
@@ -2018,25 +2369,44 @@ paths:
       security:
       - oauth2:
         - files.content.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PaperDocExport'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/PaperDocExportResult'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/PaperDocExportResult'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperDocExport'
+      description: |-
+        Exports and downloads Paper doc either as HTML or markdown.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.
+      x-stone-style: download
   /paper/docs/get_folder_info:
     post:
       summary: |-
@@ -2076,6 +2446,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Retrieves folder information for the given Paper doc. This includes:
+
+              - folder sharing policy; permissions for subfolders are set by the top-level folder.
+
+              - full 'filepath', i.e. the list of folders (both folderId and folderName) from
+                the root folder to the folder directly containing the Paper doc.
+
+
+            If the Paper doc is not in any folder (aka unfiled) the response will be empty.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/users/add:
     post:
       summary: |-
@@ -2110,6 +2494,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Allows an owner or editor to add users to a Paper doc or change their permissions
+            using their email address or Dropbox account ID.
+
+            The doc owner's permissions cannot be changed.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/users/remove:
     post:
       summary: |-
@@ -2144,6 +2537,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Allows an owner or editor to remove users from a Paper doc using their email address or
+            Dropbox account ID.
+
+            The doc owner cannot be removed.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/users/list:
     post:
       summary: |-
@@ -2180,6 +2582,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocLookupError'
+      description: |-
+        Lists all users who visited the Paper doc or users with explicit access. This call
+            excludes users who have been removed. The list is sorted by the date of the visit or
+            the share date.
+
+            The list will include both users, the explicitly shared ones as well as those
+            who came in using the Paper url link.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/users/list/continue:
     post:
       summary: |-
@@ -2212,6 +2625,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListUsersCursorError'
+      description: |-
+        Once a cursor has been retrieved from :route:`docs/users/list`, use this to
+            paginate through all users on the Paper doc.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/list:
     post:
       summary: |-
@@ -2238,6 +2658,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListPaperDocsResponse'
+      description: |-
+        Return the list of all Paper docs according to the argument specifications. To iterate
+            over through the full pagination, pass the cursor to :route:`docs/list/continue`.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/list/continue:
     post:
       summary: |-
@@ -2270,6 +2697,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListDocsCursorError'
+      description: |-
+        Once a cursor has been retrieved from :route:`docs/list`, use this to
+            paginate through all Paper doc.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /paper/docs/create:
     post:
       summary: |-
@@ -2285,9 +2719,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/PaperDocCreateArgs'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -2301,6 +2736,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaperDocCreateError'
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperDocCreateArgs'
+      description: |-
+        Creates a new Paper doc with the provided content.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            This endpoint will be retired in September 2020. Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for more information. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
   /paper/docs/update:
     post:
       summary: |-
@@ -2316,9 +2767,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/PaperDocUpdateArgs'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -2332,6 +2784,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaperDocUpdateError'
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperDocUpdateArgs'
+      description: |-
+        Updates an existing Paper doc with the provided content.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            This endpoint will be retired in September 2020. Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for more information. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
   /paper/folders/create:
     post:
       summary: |-
@@ -2363,6 +2831,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaperFolderCreateError'
+      description: |-
+        Create a new Paper folder with the provided info.
+
+            Note that this endpoint will continue to work for content created by users on the older version of Paper. To check which version of Paper a user is on, use /users/features/get_values. If the paper_as_files feature is enabled, then the user is running the new version of Paper.
+
+            Refer to the :link:`Paper Migration Guide https://www.dropbox.com/lp/developers/reference/paper-migration-guide` for migration information.
   /team/namespaces/list:
     post:
       summary: |-
@@ -2394,6 +2868,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamNamespacesListError'
+      description: |-
+        Returns a list of all team-accessible namespaces. This list includes team folders,
+            shared folders containing team members, team members' home namespaces, and team members'
+            app folders. Home namespaces and app folders are always owned by this team or members of the
+            team, but shared folders may be owned by other users or other teams. Duplicates may occur in the
+            list.
+      x-stone-auth: team
   /team/namespaces/list/continue:
     post:
       summary: |-
@@ -2422,6 +2903,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamNamespacesListContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`namespaces/list`, use this to paginate
+            through all team-accessible namespaces. Duplicates may occur in the list.
+      x-stone-auth: team
   /team/get_info:
     post:
       summary: Retrieves information about a team.
@@ -2436,6 +2921,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeamGetInfoResult'
+      description: Retrieves information about a team.
+      x-stone-auth: team
   /team/token/get_authenticated_admin:
     post:
       summary: Returns the member profile of the admin who generated the team access token used to make the call.
@@ -2456,6 +2943,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenGetAuthenticatedAdminError'
+      description: Returns the member profile of the admin who generated the team access token used to make the call.
+      x-stone-auth: team
   /team/features/get_values:
     post:
       summary: |-
@@ -2486,6 +2975,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeaturesGetValuesBatchError'
+      description: |-
+        Get the values for one or more featues. This route allows you to check your account's
+            capability for what feature you can access or what value you have for certain features.
+
+            Permission : Team information.
+      x-stone-auth: team
   /team/properties/template/add:
     post:
       summary: 'Permission : Team member file access.'
@@ -2512,6 +3007,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesModifyTemplateError'
+      description: 'Permission : Team member file access.'
+      x-stone-auth: team
   /team/properties/template/update:
     post:
       summary: 'Permission : Team member file access.'
@@ -2538,6 +3035,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesModifyTemplateError'
+      description: 'Permission : Team member file access.'
+      x-stone-auth: team
   /team/properties/template/get:
     post:
       summary: 'Permission : Team member file access. The scope for the route is files.team_metadata.write.'
@@ -2564,6 +3063,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesTemplateError'
+      description: 'Permission : Team member file access. The scope for the route is files.team_metadata.write.'
+      x-stone-auth: team
   /team/properties/template/list:
     post:
       summary: 'Permission : Team member file access. The scope for the route is files.team_metadata.write.'
@@ -2584,6 +3085,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesTemplateError'
+      description: 'Permission : Team member file access. The scope for the route is files.team_metadata.write.'
+      x-stone-auth: team
   /team/reports/get_storage:
     post:
       summary: |-
@@ -2612,6 +3115,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DateRangeError'
+      description: |-
+        Retrieves reporting data about a team's storage usage.
+            Deprecated: Will be removed on July 1st 2021.
+      x-stone-auth: team
   /team/reports/get_activity:
     post:
       summary: |-
@@ -2640,6 +3147,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DateRangeError'
+      description: |-
+        Retrieves reporting data about a team's user activity.
+            Deprecated: Will be removed on July 1st 2021.
+      x-stone-auth: team
   /team/reports/get_membership:
     post:
       summary: |-
@@ -2668,6 +3179,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DateRangeError'
+      description: |-
+        Retrieves reporting data about a team's membership.
+            Deprecated: Will be removed on July 1st 2021.
+      x-stone-auth: team
   /team/reports/get_devices:
     post:
       summary: |-
@@ -2696,6 +3211,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DateRangeError'
+      description: |-
+        Retrieves reporting data about a team's linked devices.
+            Deprecated: Will be removed on July 1st 2021.
+      x-stone-auth: team
   /contacts/delete_manual_contacts:
     post:
       summary: |-
@@ -2713,6 +3232,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Void'
+      description: |-
+        Removes all manually added contacts.
+            You'll still keep contacts who are on your team or who you imported.
+            New contacts will be added when you share.
   /contacts/delete_manual_contacts_batch:
     post:
       summary: Removes manually added contacts from the given list.
@@ -2739,6 +3262,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteManualContactsError'
+      description: Removes manually added contacts from the given list.
   /files/get_metadata:
     post:
       summary: |-
@@ -2769,6 +3293,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AlphaGetMetadataError'
+      description: |-
+        Returns the metadata for a file or folder. This is an alpha endpoint
+            compatible with the properties API.
+
+            Note: Metadata for the root folder is unsupported.
+      x-stone-preview: true
+      x-stone-allow-app-folder: true
   /files/list_folder/longpoll:
     post:
       summary: |-
@@ -2802,6 +3333,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderLongpollError'
+      servers:
+      - url: https://notify.dropboxnotify.com/2
+        description: Dropbox Notify Server
+      description: |-
+        A longpoll endpoint to wait for changes on an account. In conjunction with
+            :route:`list_folder/continue`, this call gives you a low-latency way to
+            monitor an account for file changes. The connection will block until there
+            are changes available or a timeout occurs. This endpoint is useful mostly
+            for client-side apps. If you're looking for server-side notifications,
+            check out our
+            :link:`webhooks documentation https://www.dropbox.com/developers/reference/webhooks`.
+      x-stone-auth: noauth
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/list_folder:
     post:
       summary: |-
@@ -2852,6 +3397,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderError'
+      description: |-
+        Starts returning the contents of a folder. If the result's :field:`ListFolderResult.has_more`
+            field is :val:`true`, call :route:`list_folder/continue` with the returned
+            :field:`ListFolderResult.cursor` to retrieve more entries.
+
+            If you're using :field:`ListFolderArg.recursive` set to :val:`true` to keep a local cache of
+            the contents of a Dropbox account, iterate through each entry in order and process them as
+            follows to keep your local state in sync:
+
+            For each :type:`FileMetadata`, store the new entry at the given path in your local state. If the
+            required parent folders don't exist yet, create them. If there's already something else at the
+            given path, replace it and remove all its children.
+
+            For each :type:`FolderMetadata`, store the new entry at the given path in your local state. If
+            the required parent folders don't exist yet, create them. If there's already something else at
+            the given path, replace it but leave the children as they are. Check the new entry's
+            :field:`FolderSharingInfo.read_only` and set all its children's read-only statuses to match.
+
+            For each :type:`DeletedMetadata`, if your local state has something at the given path, remove it
+            and all its children. If there's nothing at the given path, ignore this entry.
+
+            Note: :type:`auth.RateLimitError` may be returned if multiple :route:`list_folder` or
+            :route:`list_folder/continue` calls with same parameters are made simultaneously by same
+            API app for same user. If your app implements retry logic, please hold off the retry until
+            the previous request finishes.
+      x-stone-auth: app, user
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/list_folder/continue:
     post:
       summary: |-
@@ -2881,6 +3454,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`list_folder`, use this to paginate through all
+            files and retrieve updates to the folder, following the same rules as documented for
+            :route:`list_folder`.
+      x-stone-auth: app, user
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/list_folder/get_latest_cursor:
     post:
       summary: |-
@@ -2911,6 +3491,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderError'
+      description: |-
+        A way to quickly get a cursor for the folder's state. Unlike :route:`list_folder`,
+            :route:`list_folder/get_latest_cursor` doesn't return any entries. This endpoint is for app
+            which only needs to know about new files and modifications and doesn't need to know about
+            files that already exist in Dropbox.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/download:
     post:
       summary: Download a file from a user's Dropbox.
@@ -2918,25 +3505,44 @@ paths:
       security:
       - oauth2:
         - files.content.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DownloadArg'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/FileMetadata'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/FileMetadata'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DownloadError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadArg'
+      description: 'Download a file from a user''s Dropbox. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.'
+      x-stone-style: download
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/download_zip:
     post:
       summary: |-
@@ -2950,25 +3556,49 @@ paths:
       security:
       - oauth2:
         - files.content.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DownloadZipArg'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/DownloadZipResult'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DownloadZipResult'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DownloadZipError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadZipArg'
+      description: |-
+        Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB
+            in size and any single file within must be less than 4 GB in size. The resulting zip must have
+            fewer than 10,000 total file and folder entries, including the top level folder. The input
+            cannot be a single file.
+
+            Note: this endpoint does not support HTTP range requests. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.
+      x-stone-style: download
+      x-stone-allow-app-folder: true
   /files/export:
     post:
       summary: |-
@@ -2978,25 +3608,47 @@ paths:
       security:
       - oauth2:
         - files.content.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExportArg'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/ExportResult'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/ExportResult'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExportError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportArg'
+      description: |-
+        Export a file from a user's Dropbox. This route only supports exporting files that cannot be downloaded directly
+             and whose :field:`ExportResult.file_metadata` has :field:`ExportInfo.export_as` populated. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.
+      x-stone-style: download
+      x-stone-preview: true
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/upload_session/start_batch:
     post:
       summary: |-
@@ -3023,6 +3675,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadSessionStartBatchResult'
+      description: |-
+        This route starts batch of upload_sessions. Please refer to `upload_session/start` usage.
+
+            Calls to this endpoint will count as data transport calls for any Dropbox
+            Business teams with a limit on the number of data transport calls allowed
+            per month. For more information, see the :link:`Data transport limit page
+            https://www.dropbox.com/developers/reference/data-transport-limit`. RPC-style endpoint: Both request and response bodies are JSON.
+      x-stone-style: rpc
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/upload_session/start:
     post:
       summary: |-
@@ -3067,9 +3729,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/UploadSessionStartArg'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -3083,6 +3746,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadSessionStartError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadSessionStartArg'
+      description: |-
+        Upload sessions allow you to upload a single file in one or more
+            requests, for example where the size of the file is greater than 150
+            MB.  This call starts a new upload session with the given data. You
+            can then use :route:`upload_session/append:2` to add more data and
+            :route:`upload_session/finish` to save all the data to a file in
+            Dropbox.
+
+            A single request should not upload more than 150 MB. The maximum size of
+            a file one can upload to an upload session is 350 GB.
+
+            An upload session can be used for a maximum of 7 days. Attempting
+            to use an :field:`UploadSessionStartResult.session_id` with
+            :route:`upload_session/append:2` or :route:`upload_session/finish` more
+            than 7 days after its creation will return a
+            :field:`UploadSessionLookupError.not_found`.
+
+            Calls to this endpoint will count as data transport calls for any Dropbox
+            Business teams with a limit on the number of data transport calls allowed
+            per month. For more information, see the :link:`Data transport limit page
+            https://www.dropbox.com/developers/reference/data-transport-limit`.
+
+            By default, upload sessions require you to send content of the file in sequential order via
+            consecutive :route:`upload_session/start`, :route:`upload_session/append:2`,
+            :route:`upload_session/finish` calls. For better performance, you can instead optionally use
+            a :field:`UploadSessionType.concurrent` upload session. To start a new concurrent session,
+            set :field:`UploadSessionStartArg.session_type` to :field:`UploadSessionType.concurrent`.
+            After that, you can send file data in concurrent :route:`upload_session/append:2` requests.
+            Finally finish the session with :route:`upload_session/finish`.
+
+            There are couple of constraints with concurrent sessions to make them work. You can not send
+            data with :route:`upload_session/start` or :route:`upload_session/finish` call, only with
+            :route:`upload_session/append:2` call. Also data uploaded in :route:`upload_session/append:2`
+            call must be multiple of 4194304 bytes (except for last :route:`upload_session/append:2` with
+            :field:`UploadSessionStartArg.close` to :val:`true`, that may contain any remaining data). Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/upload_session/append:2:
     post:
       summary: |-
@@ -3101,9 +3814,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/UploadSessionCursor'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -3117,6 +3831,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadSessionAppendError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadSessionCursor'
+      description: |-
+        Append more data to an upload session.
+
+            A single request should not upload more than 150 MB. The maximum size of
+            a file one can upload to an upload session is 350 GB.
+
+            Calls to this endpoint will count as data transport calls for any Dropbox
+            Business teams with a limit on the number of data transport calls allowed
+            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/upload_session/finish:
     post:
       summary: |-
@@ -3136,9 +3874,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/UploadSessionFinishArg'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -3152,6 +3891,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadSessionFinishError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadSessionFinishArg'
+      description: |-
+        Finish an upload session and save the uploaded data to the given file
+            path.
+
+            A single request should not upload more than 150 MB. The maximum size of
+            a file one can upload to an upload session is 350 GB.
+
+            Calls to this endpoint will count as data transport calls for any Dropbox
+            Business teams with a limit on the number of data transport calls allowed
+            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/upload:
     post:
       summary: |-
@@ -3167,9 +3931,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/UploadArg'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -3183,6 +3948,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadArg'
+      description: |-
+        Create a new file with the contents provided in the request. Note that the
+            behavior of this alpha endpoint is unstable and subject to change.
+
+            Do not use this to upload a file larger than 150 MB. Instead, create an
+            upload session with :route:`upload_session/start`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
+      x-stone-preview: true
+      x-stone-allow-app-folder: true
   /files/upload_session/finish_batch:2:
     post:
       summary: |-
@@ -3220,6 +4006,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadSessionFinishBatchResult'
+      description: |-
+        This route helps you commit many files at once into a user's Dropbox. Use
+            :route:`upload_session/start` and :route:`upload_session/append:2` to
+            upload file contents. We recommend uploading many files in parallel to increase
+            throughput. Once the file contents have been uploaded, rather than calling
+            :route:`upload_session/finish`, use this route to finish all your upload sessions
+            in a single request.
+
+            :field:`UploadSessionStartArg.close` or :field:`UploadSessionAppendArg.close`
+            needs to be true for the last
+            :route:`upload_session/start` or :route:`upload_session/append:2` call of each upload session. The maximum
+            size of a file one can upload to an upload session is 350 GB.
+
+            We allow up to 1000 entries in a single request.
+
+            Calls to this endpoint will count as data transport calls for any Dropbox
+            Business teams with a limit on the number of data transport calls allowed
+            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/upload_session/finish_batch/check:
     post:
       summary: |-
@@ -3248,6 +4054,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Returns the status of an asynchronous job for :route:`upload_session/finish_batch`. If
+            success, it returns list of result for each entry.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/search:2:
     post:
       summary: |-
@@ -3281,6 +4092,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchError'
+      description: |-
+        Searches for files and folders.
+
+            Note: :route:`search:2` along with :route:`search/continue:2` can only be used to
+            retrieve a maximum of 10,000 matches.
+
+            Recent changes may not immediately be reflected in search results due to a short delay in indexing.
+            Duplicate results may be returned across pages. Some results may not be returned.
+      x-stone-allow-app-folder: true
   /files/search/continue:2:
     post:
       summary: |-
@@ -3314,6 +4134,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchError'
+      description: |-
+        Fetches the next page of search results returned from :route:`search:2`.
+
+            Note: :route:`search:2` along with :route:`search/continue:2` can only be used to
+            retrieve a maximum of 10,000 matches.
+
+            Recent changes may not immediately be reflected in search results due to a short delay in indexing.
+            Duplicate results may be returned across pages. Some results may not be returned.
+      x-stone-allow-app-folder: true
   /files/create_folder:2:
     post:
       summary: Create a folder at a given path.
@@ -3340,6 +4169,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateFolderError'
+      description: Create a folder at a given path.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/create_folder_batch:
     post:
       summary: |-
@@ -3367,6 +4199,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateFolderBatchLaunch'
+      description: |-
+        Create multiple folders at once.
+
+            This route is asynchronous for large batches, which returns a job ID immediately and runs
+            the create folder batch asynchronously. Otherwise, creates the folders and returns the result
+            synchronously for smaller inputs. You can force asynchronous behaviour by using the
+            :field:`CreateFolderBatchArg.force_async` flag.  Use :route:`create_folder_batch/check` to check
+            the job status.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/create_folder_batch/check:
     post:
       summary: |-
@@ -3395,6 +4237,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Returns the status of an asynchronous job for :route:`create_folder_batch`. If
+            success, it returns list of result for each entry.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/delete:2:
     post:
       summary: |-
@@ -3428,6 +4275,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteError'
+      description: |-
+        Delete the file or folder at a given path.
+
+            If the path is a folder, all its contents will be deleted too.
+
+            A successful response indicates that the file or folder was deleted. The returned metadata will
+            be the corresponding :type:`FileMetadata` or :type:`FolderMetadata` for the item at time of
+            deletion, and not a :type:`DeletedMetadata` object.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/delete_batch:
     post:
       summary: |-
@@ -3453,6 +4310,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteBatchLaunch'
+      description: |-
+        Delete multiple files/folders at once.
+
+            This route is asynchronous, which returns a job ID immediately and runs
+            the delete batch asynchronously. Use :route:`delete_batch/check` to check
+            the job status.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/delete_batch/check:
     post:
       summary: |-
@@ -3481,6 +4346,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Returns the status of an asynchronous job for :route:`delete_batch`. If
+            success, it returns list of result for each entry.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/permanently_delete:
     post:
       summary: |-
@@ -3515,6 +4385,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteError'
+      description: |-
+        Permanently delete the file or folder at a given path
+            (see https://www.dropbox.com/en/help/40).
+
+            If the given file or folder is not yet deleted, this route will first delete it.
+            It is possible for this route to successfully delete, then fail to permanently
+            delete.
+
+            Note: This endpoint is only available for Dropbox Business apps.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/copy:2:
     post:
       summary: |-
@@ -3544,6 +4425,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationError'
+      description: |-
+        Copy a file or folder to a different location in the user's Dropbox.
+
+            If the source path is a folder all its contents will be copied.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/copy_batch:2:
     post:
       summary: |-
@@ -3569,6 +4456,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationBatchLaunch'
+      description: |-
+        Copy multiple files or folders to different locations at once in the
+            user's Dropbox.
+
+            This route will return job ID immediately and do the async copy job in
+            background. Please use :route:`copy_batch/check:1` to check the job status.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/copy_batch/check:2:
     post:
       summary: |-
@@ -3597,6 +4492,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Returns the status of an asynchronous job for :route:`copy_batch:1`. If
+            success, it returns list of results for each entry.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/move:2:
     post:
       summary: |-
@@ -3626,6 +4526,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationError'
+      description: |-
+        Move a file or folder to a different location in the user's Dropbox.
+
+            If the source path is a folder all its contents will be moved.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/move_batch:2:
     post:
       summary: |-
@@ -3651,6 +4557,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationBatchLaunch'
+      description: |-
+        Move multiple files or folders to different locations at once in the
+            user's Dropbox.
+
+            This route will return job ID immediately and do the async moving job in
+            background. Please use :route:`move_batch/check:1` to check the job status.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/move_batch/check:2:
     post:
       summary: |-
@@ -3679,6 +4593,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Returns the status of an asynchronous job for :route:`move_batch:1`. If
+            success, it returns list of results for each entry.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/get_thumbnail:
     post:
       summary: |-
@@ -3691,25 +4610,49 @@ paths:
       security:
       - oauth2:
         - files.content.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ThumbnailArg'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/FileMetadata'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/FileMetadata'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ThumbnailError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThumbnailArg'
+      description: |-
+        Get a thumbnail for an image.
+
+            This method currently supports files with the following file extensions:
+            jpg, jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB
+            in size won't be converted to a thumbnail. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.
+      x-stone-style: download
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/get_thumbnail_batch:
     post:
       summary: |-
@@ -3741,6 +4684,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetThumbnailBatchError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      description: |-
+        Get thumbnails for a list of images. We allow up to 25 thumbnails in a single batch.
+
+            This method currently supports files with the following file extensions:
+            jpg, jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB
+            in size won't be converted to a thumbnail.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/get_thumbnail:2:
     post:
       summary: |-
@@ -3753,25 +4707,50 @@ paths:
       security:
       - oauth2:
         - files.content.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ThumbnailV2Arg'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/PreviewResult'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/PreviewResult'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ThumbnailV2Error'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThumbnailV2Arg'
+      description: |-
+        Get a thumbnail for an image.
+
+            This method currently supports files with the following file extensions:
+            jpg, jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB
+            in size won't be converted to a thumbnail. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.
+      x-stone-auth: app, user
+      x-stone-style: download
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/get_preview:
     post:
       summary: |-
@@ -3787,25 +4766,52 @@ paths:
       security:
       - oauth2:
         - files.content.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PreviewArg'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/FileMetadata'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/FileMetadata'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PreviewError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewArg'
+      description: |-
+        Get a preview for a file.
+
+            Currently, PDF previews are generated for files with the following extensions:
+            .ai, .doc, .docm, .docx, .eps, .gdoc, .gslides, .odp, .odt, .pps, .ppsm, .ppsx, .ppt, .pptm, .pptx, .rtf.
+
+            HTML previews are generated for files with the following extensions: .csv, .ods, .xls, .xlsm, .gsheet, .xlsx.
+
+            Other formats will return an unsupported extension error. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.
+      x-stone-style: download
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/list_revisions:
     post:
       summary: |-
@@ -3841,6 +4847,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListRevisionsError'
+      description: |-
+        Returns revisions for files based on a file path or a file id. The file path or file id is
+            identified from the latest file entry at the given file path or id. This end point allows your
+            app to query either by file path or file id by setting the mode parameter appropriately.
+
+            In the :field:`ListRevisionsMode.path` (default) mode, all revisions at the same
+            file path as the latest file entry are
+            returned. If revisions with the same file id are desired, then mode must be set to
+            :field:`ListRevisionsMode.id`. The :field:`ListRevisionsMode.id` mode is useful to retrieve
+            revisions for a given file across moves or renames.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: whole_team
   /files/restore:
     post:
       summary: Restore a specific revision of a file to the given path.
@@ -3867,6 +4885,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RestoreError'
+      description: Restore a specific revision of a file to the given path.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /files/get_temporary_link:
     post:
       summary: |-
@@ -3896,6 +4917,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetTemporaryLinkError'
+      description: |-
+        Get a temporary link to stream content of a file. This link will expire in four hours and
+            afterwards you will get 410 Gone. This URL should not be used to display content directly
+            in the browser. The Content-Type of the link is determined automatically by the file's mime type.
+      x-stone-allow-app-folder: true
   /files/get_temporary_upload_link:
     post:
       summary: "Get a one-time use temporary upload link to upload a file to a Dropbox location.\n\n\n    This endpoint acts as a delayed :route:`upload`. The returned temporary upload link may be used\n    to make a POST request with the data to be uploaded. The upload will then be perfomed with the\n    :type:`CommitInfo` previously provided to :route:`get_temporary_upload_link` but evaluated only\n    upon consumption. Hence, errors stemming from invalid :type:`CommitInfo` with respect to the\n    state of the user's Dropbox will only be communicated at consumption time. Additionally, these\n    errors are surfaced as generic HTTP 409 Conflict responses, potentially hiding issue details.\n    The maximum temporary upload link duration is 4 hours. Upon consumption or expiration,\n    a new link will have to be generated. Multiple links may exist for a specific upload path\n    at any given time.\n\n\n    The POST request on the temporary upload link must have its Content-Type\n    set to \"application/octet-stream\".\n\n\n    Example temporary upload link consumption request:\n\n\n    curl -X POST https://content.dropboxapi.com/apitul/1/bNi2uIYF51cVBND\n\n    --header \"Content-Type: application/octet-stream\"\n\n    --data-binary @local_file.txt\n\n\n    A successful temporary upload link consumption request returns the content hash\n    of the uploaded data in JSON format.\n\n\n    Example successful temporary upload link consumption response:\n\n    {\"content-hash\": \"599d71033d700ac892a0e48fa61b125d2f5994\"}\n\n\n    An unsuccessful temporary upload link consumption request returns any of the following status\n    codes:\n\n\n    HTTP 400 Bad Request: Content-Type is not one of\n    application/octet-stream and text/plain or request is invalid.\n\n    HTTP 409 Conflict: The temporary upload link does not exist or is currently unavailable,\n    the upload failed, or another error happened.\n\n    HTTP 410 Gone: The temporary upload link is expired or consumed.\n\n\n    Example unsuccessful temporary upload link consumption response:\n\n    Temporary upload link has been recently consumed.\n    "
@@ -3916,6 +4942,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetTemporaryUploadLinkResult'
+      description: "Get a one-time use temporary upload link to upload a file to a Dropbox location.\n\n\n    This endpoint acts as a delayed :route:`upload`. The returned temporary upload link may be used\n    to make a POST request with the data to be uploaded. The upload will then be perfomed with the\n    :type:`CommitInfo` previously provided to :route:`get_temporary_upload_link` but evaluated only\n    upon consumption. Hence, errors stemming from invalid :type:`CommitInfo` with respect to the\n    state of the user's Dropbox will only be communicated at consumption time. Additionally, these\n    errors are surfaced as generic HTTP 409 Conflict responses, potentially hiding issue details.\n    The maximum temporary upload link duration is 4 hours. Upon consumption or expiration,\n    a new link will have to be generated. Multiple links may exist for a specific upload path\n    at any given time.\n\n\n    The POST request on the temporary upload link must have its Content-Type\n    set to \"application/octet-stream\".\n\n\n    Example temporary upload link consumption request:\n\n\n    curl -X POST https://content.dropboxapi.com/apitul/1/bNi2uIYF51cVBND\n\n    --header \"Content-Type: application/octet-stream\"\n\n    --data-binary @local_file.txt\n\n\n    A successful temporary upload link consumption request returns the content hash\n    of the uploaded data in JSON format.\n\n\n    Example successful temporary upload link consumption response:\n\n    {\"content-hash\": \"599d71033d700ac892a0e48fa61b125d2f5994\"}\n\n\n    An unsuccessful temporary upload link consumption request returns any of the following status\n    codes:\n\n\n    HTTP 400 Bad Request: Content-Type is not one of\n    application/octet-stream and text/plain or request is invalid.\n\n    HTTP 409 Conflict: The temporary upload link does not exist or is currently unavailable,\n    the upload failed, or another error happened.\n\n    HTTP 410 Gone: The temporary upload link is expired or consumed.\n\n\n    Example unsuccessful temporary upload link consumption response:\n\n    Temporary upload link has been recently consumed.\n    "
+      x-stone-allow-app-folder: true
   /files/copy_reference/get:
     post:
       summary: |-
@@ -3945,6 +4973,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCopyReferenceError'
+      description: |-
+        Get a copy reference to a file or folder. This reference string can be used to
+            save that file or folder to another user's Dropbox by passing it to
+            :route:`copy_reference/save`.
+      x-stone-allow-app-folder: true
   /files/copy_reference/save:
     post:
       summary: Save a copy reference returned by :route:`copy_reference/get` to the user's Dropbox.
@@ -3971,6 +5004,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SaveCopyReferenceError'
+      description: Save a copy reference returned by :route:`copy_reference/get` to the user's Dropbox.
+      x-stone-allow-app-folder: true
   /files/save_url:
     post:
       summary: |-
@@ -4004,6 +5039,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SaveUrlError'
+      description: |-
+        Save the data from a specified URL into a file in user's Dropbox.
+
+            Note that the transfer from the URL must complete within 15 minutes, or the
+            operation will time out and the job will fail.
+
+            If the given path already exists, the file will be renamed to avoid the
+            conflict (e.g. myfile (1).txt).
+      x-stone-allow-app-folder: true
   /files/save_url/check_job_status:
     post:
       summary: Check the status of a :route:`save_url` job.
@@ -4030,6 +5074,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: Check the status of a :route:`save_url` job.
+      x-stone-allow-app-folder: true
   /files/properties/add:
     post:
       summary: Execute properties/add
@@ -4056,6 +5102,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesAddPropertiesError'
+      description: Execute properties/add
   /files/properties/overwrite:
     post:
       summary: Execute properties/overwrite
@@ -4082,6 +5129,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesInvalidPropertyGroupError'
+      description: Execute properties/overwrite
   /files/properties/update:
     post:
       summary: Execute properties/update
@@ -4108,6 +5156,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesUpdatePropertiesError'
+      description: Execute properties/update
   /files/properties/remove:
     post:
       summary: Execute properties/remove
@@ -4134,6 +5183,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesRemovePropertiesError'
+      description: Execute properties/remove
   /files/properties/template/get:
     post:
       summary: Execute properties/template/get
@@ -4160,6 +5210,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesTemplateError'
+      description: Execute properties/template/get
   /files/properties/template/list:
     post:
       summary: Execute properties/template/list
@@ -4180,6 +5231,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesTemplateError'
+      description: Execute properties/template/list
   /files/lock_file_batch:
     post:
       summary: "\n    Lock the files at the given paths. A locked file will be writable only by the lock holder.\n    A successful response indicates that the file has been locked. Returns a list of the\n    locked file paths and their metadata after this operation.\n    "
@@ -4206,6 +5258,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LockFileError'
+      description: "\n    Lock the files at the given paths. A locked file will be writable only by the lock holder.\n    A successful response indicates that the file has been locked. Returns a list of the\n    locked file paths and their metadata after this operation.\n    "
   /files/unlock_file_batch:
     post:
       summary: "\n    Unlock the files at the given paths. A locked file can only be unlocked by the lock holder\n    or, if a business account, a team admin. A successful response indicates that the file has\n    been unlocked. Returns a list of the unlocked file paths and their metadata after\n    this operation.\n    "
@@ -4232,6 +5285,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LockFileError'
+      description: "\n    Unlock the files at the given paths. A locked file can only be unlocked by the lock holder\n    or, if a business account, a team admin. A successful response indicates that the file has\n    been unlocked. Returns a list of the unlocked file paths and their metadata after\n    this operation.\n    "
+      x-stone-select-admin-mode: whole_team
   /files/get_file_lock_batch:
     post:
       summary: "\n    Return the lock metadata for the given list of paths.\n    "
@@ -4258,6 +5313,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LockFileError'
+      description: "\n    Return the lock metadata for the given list of paths.\n    "
   /files/paper/create:
     post:
       summary: "\n    Creates a new Paper doc with the provided content.\n    "
@@ -4268,9 +5324,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/PaperCreateArg'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -4284,6 +5341,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaperCreateError'
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperCreateArg'
+      description: |2-
+
+            Creates a new Paper doc with the provided content.
+             Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
+      x-stone-preview: true
   /files/paper/update:
     post:
       summary: "\n    Updates an existing Paper doc with the provided content.\n    "
@@ -4294,9 +5366,10 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              $ref: '#/components/schemas/PaperUpdateArg'
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful response
@@ -4310,6 +5383,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaperUpdateError'
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperUpdateArg'
+      description: |2-
+
+            Updates an existing Paper doc with the provided content.
+             Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.
+      x-stone-style: upload
+      x-stone-preview: true
   /file_properties/properties/add:
     post:
       summary: |-
@@ -4338,6 +5426,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddPropertiesError'
+      description: |-
+        Add property groups to a Dropbox file. See :route:`templates/add_for_user` or
+            :route:`templates/add_for_team` to create new templates.
   /file_properties/properties/overwrite:
     post:
       summary: |-
@@ -4369,6 +5460,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InvalidPropertyGroupError'
+      description: |-
+        Overwrite property groups associated with a file. This endpoint should be used
+            instead of :route:`properties/update` when property groups are being updated via a
+            "snapshot" instead of via a "delta". In other words, this endpoint will delete all
+            omitted fields from a property group, whereas :route:`properties/update` will only
+            delete fields that are explicitly marked for deletion.
   /file_properties/properties/update:
     post:
       summary: |-
@@ -4400,6 +5497,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdatePropertiesError'
+      description: |-
+        Add, update or remove properties associated with the supplied file and templates.
+            This endpoint should be used instead of :route:`properties/overwrite` when property groups
+            are being updated via a "delta" instead of via a "snapshot" . In other words, this endpoint
+            will not delete any omitted fields from a property group, whereas :route:`properties/overwrite`
+            will delete any fields that are omitted from a property group.
   /file_properties/properties/remove:
     post:
       summary: |-
@@ -4432,6 +5535,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemovePropertiesError'
+      description: |-
+        Permanently removes the specified property group from the file. To remove specific property field key
+            value pairs, see :route:`properties/update`.
+            To update a template, see
+            :route:`templates/update_for_user` or :route:`templates/update_for_team`.
+            To remove a template, see
+            :route:`templates/remove_for_user` or :route:`templates/remove_for_team`.
   /file_properties/templates/add_for_user:
     post:
       summary: |-
@@ -4460,6 +5570,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifyTemplateError'
+      description: |-
+        Add a template associated with a user. See :route:`properties/add` to add properties to a file. This
+            endpoint can't be called on a team member or admin's behalf.
   /file_properties/templates/add_for_team:
     post:
       summary: |-
@@ -4489,6 +5602,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifyTemplateError'
+      description: |-
+        Add a template associated with a team. See :route:`properties/add` to add properties to a file or folder.
+
+            Note: this endpoint will create team-owned templates.
+      x-stone-auth: team
   /file_properties/templates/get_for_user:
     post:
       summary: Get the schema for a specified template. This endpoint can't be called on a team member or admin's behalf.
@@ -4515,6 +5633,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      description: Get the schema for a specified template. This endpoint can't be called on a team member or admin's behalf.
   /file_properties/templates/get_for_team:
     post:
       summary: Get the schema for a specified template.
@@ -4541,6 +5660,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      description: Get the schema for a specified template.
+      x-stone-auth: team
   /file_properties/templates/update_for_user:
     post:
       summary: |-
@@ -4570,6 +5691,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifyTemplateError'
+      description: |-
+        Update a template associated with a user. This route can update the template name,
+            the template description and add optional properties to templates. This endpoint can't
+            be called on a team member or admin's behalf.
   /file_properties/templates/update_for_team:
     post:
       summary: |-
@@ -4598,6 +5723,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifyTemplateError'
+      description: |-
+        Update a template associated with a team. This route can update the template name,
+            the template description and add optional properties to templates.
+      x-stone-auth: team
   /file_properties/templates/list_for_user:
     post:
       summary: |-
@@ -4621,6 +5750,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      description: |-
+        Get the template identifiers for a team. To get the schema of
+            each template use :route:`templates/get_for_user`. This endpoint can't be
+            called on a team member or admin's behalf.
   /file_properties/templates/list_for_team:
     post:
       summary: |-
@@ -4643,6 +5776,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      description: |-
+        Get the template identifiers for a team. To get the schema of
+            each template use :route:`templates/get_for_team`.
+      x-stone-auth: team
   /file_properties/templates/remove_for_user:
     post:
       summary: |-
@@ -4672,6 +5809,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      description: |-
+        Permanently removes the specified template created from :route:`templates/add_for_user`.
+            All properties associated with the template will also be removed. This action
+            cannot be undone.
   /file_properties/templates/remove_for_team:
     post:
       summary: |-
@@ -4701,6 +5842,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      description: |-
+        Permanently removes the specified template created from :route:`templates/add_for_user`.
+            All properties associated with the template will also be removed. This action
+            cannot be undone.
+      x-stone-auth: team
   /file_properties/properties/search:
     post:
       summary: Search across property templates for particular property field values.
@@ -4727,6 +5873,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PropertiesSearchError'
+      description: Search across property templates for particular property field values.
   /file_properties/properties/search/continue:
     post:
       summary: |-
@@ -4755,6 +5902,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PropertiesSearchContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`properties/search`, use this to paginate through all
+            search results.
   /sharing/get_shared_link_metadata:
     post:
       summary: Get the shared link's metadata.
@@ -4781,6 +5931,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharedLinkError'
+      description: Get the shared link's metadata.
+      x-stone-auth: app, user
+      x-stone-allow-app-folder: true
   /sharing/list_shared_links:
     post:
       summary: |-
@@ -4816,6 +5969,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetSharedLinksError'
+      description: |-
+        Returns a list of :type:`LinkMetadata` objects for this user,
+            including collection links.
+
+            If no path is given, returns a list of all shared links for the current
+            user, including collection links, up to a maximum of 1000 links.
+
+            If a non-empty path is given, returns a list of all shared links
+            that allow access to the given path.  Collection links are never
+            returned in this case.
+      x-stone-allow-app-folder: true
   /sharing/modify_shared_link_settings:
     post:
       summary: |-
@@ -4849,6 +6013,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifySharedLinkSettingsError'
+      description: |-
+        Modify the shared link's settings.
+
+            If the requested visibility conflict with the shared links policy of the team or the
+            shared folder (in case the linked file is part of a shared folder) then the
+            :field:`LinkPermissions.resolved_visibility` of the returned :type:`SharedLinkMetadata` will
+            reflect the actual visibility of the shared link and the
+            :field:`LinkPermissions.requested_visibility` will reflect the requested visibility.
+      x-stone-allow-app-folder: true
   /sharing/create_shared_link_with_settings:
     post:
       summary: |-
@@ -4883,6 +6056,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateSharedLinkError'
+      description: |-
+        Create a shared link.
+
+            If a shared link already exists for the given path, that link is returned.
+
+            Previously, it was technically possible to break a shared link by moving or
+            renaming the corresponding file or folder. In the future, this will no
+            longer be the case, so your app shouldn't rely on this behavior. Instead, if
+            your app needs to revoke a shared link, use :route:`revoke_shared_link`.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /sharing/revoke_shared_link:
     post:
       summary: |-
@@ -4915,6 +6099,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeSharedLinkError'
+      description: |-
+        Revoke a shared link.
+
+            Note that even after revoking a shared link to a file, the file may be accessible if there are
+            shared links leading to any of the file parent folders. To list all shared links that enable
+            access to a specific file, you can use the :route:`list_shared_links` with the file as the
+            :field:`ListSharedLinksArg.path` argument.
+      x-stone-allow-app-folder: true
+      x-stone-select-admin-mode: team_admin
   /sharing/get_shared_link_file:
     post:
       summary: Download the shared link's file from a user's Dropbox.
@@ -4922,25 +6115,43 @@ paths:
       security:
       - oauth2:
         - sharing.read
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GetSharedLinkFileArg'
       responses:
         '200':
-          description: Successful response
+          description: Successful response with file content
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/SharedLinkMetadata'
+                type: string
+                format: binary
+          headers:
+            Dropbox-API-Result:
+              description: The JSON metadata response encoded as a string in this header.
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/SharedLinkMetadata'
         '400':
           description: Error response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetSharedLinkFileError'
+      servers:
+      - url: https://content.dropboxcontent.com/2
+        description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Arg
+        in: header
+        description: The request parameters as a JSON encoded string in this header.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetSharedLinkFileArg'
+      description: 'Download the shared link''s file from a user''s Dropbox. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.'
+      x-stone-style: download
+      x-stone-allow-app-folder: true
   /team/sharing_allowlist/add:
     post:
       summary: |-
@@ -4972,6 +6183,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingAllowlistAddError'
+      description: |-
+        Endpoint adds Approve List entries. Changes are effective immediately.
+            Changes are committed in transaction. In case of single validation error - all entries are rejected.
+            Valid domains (RFC-1034/5) and emails (RFC-5322/822) are accepted.
+            Added entries cannot overflow limit of 10000 entries per team.
+            Maximum 100 entries per call is allowed.
+      x-stone-auth: team
+      x-stone-preview: true
   /team/sharing_allowlist/list:
     post:
       summary: |-
@@ -5002,6 +6221,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingAllowlistListError'
+      description: |-
+        Lists Approve List entries for given team, from newest to oldest, returning
+            up to `limit` entries at a time. If there are more than `limit` entries
+            associated with the current team, more can be fetched by passing the
+            returned `cursor` to :route:`sharing_allowlist/list/continue`.
+      x-stone-auth: team
+      x-stone-preview: true
   /team/sharing_allowlist/list/continue:
     post:
       summary: Lists entries associated with given team, starting from a the cursor. See :route:`sharing_allowlist/list`.
@@ -5028,6 +6254,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingAllowlistListContinueError'
+      description: Lists entries associated with given team, starting from a the cursor. See :route:`sharing_allowlist/list`.
+      x-stone-auth: team
+      x-stone-preview: true
   /team/sharing_allowlist/remove:
     post:
       summary: |-
@@ -5059,6 +6288,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingAllowlistRemoveError'
+      description: |-
+        Endpoint removes Approve List entries. Changes are effective immediately.
+            Changes are committed in transaction. In case of single validation error - all entries are rejected.
+            Valid domains (RFC-1034/5) and emails (RFC-5322/822) are accepted.
+            Entries being removed have to be present on the list.
+            Maximum 1000 entries per call is allowed.
+      x-stone-auth: team
+      x-stone-preview: true
   /account/set_profile_photo:
     post:
       summary: Sets a user's profile photo.
@@ -5085,6 +6322,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SetProfilePhotoError'
+      description: Sets a user's profile photo.
   /team/members/list:2:
     post:
       summary: |-
@@ -5114,6 +6352,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersListError'
+      description: |-
+        Lists members of a team.
+
+            Permission : Team information.
+      x-stone-auth: team
   /team/members/list:
     post:
       summary: |-
@@ -5143,6 +6386,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersListError'
+      description: |-
+        Lists members of a team.
+
+            Permission : Team information.
+      x-stone-auth: team
   /team/members/list/continue:2:
     post:
       summary: |-
@@ -5173,6 +6421,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersListContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`members/list:2`, use this to paginate
+            through all team members.
+
+            Permission : Team information.
+      x-stone-auth: team
   /team/members/list/continue:
     post:
       summary: |-
@@ -5203,6 +6457,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersListContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`members/list`, use this to paginate
+            through all team members.
+
+            Permission : Team information.
+      x-stone-auth: team
   /team/members/get_info:2:
     post:
       summary: |-
@@ -5235,6 +6495,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersGetInfoError'
+      description: |-
+        Returns information about multiple team members.
+
+            Permission : Team information
+
+            This endpoint will return :field:`MembersGetInfoItem.id_not_found`,
+            for IDs (or emails) that cannot be matched to a valid team member.
+      x-stone-auth: team
   /team/members/get_info:
     post:
       summary: |-
@@ -5267,6 +6535,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersGetInfoError'
+      description: |-
+        Returns information about multiple team members.
+
+            Permission : Team information
+
+            This endpoint will return :field:`MembersGetInfoItem.id_not_found`,
+            for IDs (or emails) that cannot be matched to a valid team member.
+      x-stone-auth: team
   /team/members/add:2:
     post:
       summary: |-
@@ -5303,6 +6579,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersAddLaunchV2Result'
+      description: |-
+        Adds members to a team.
+
+            Permission : Team member management
+
+            A maximum of 20 members can be specified in a single call.
+
+            If no Dropbox account exists with the email address specified, a new Dropbox account will
+            be created with the given email address, and that account will be invited to the team.
+
+            If a personal Dropbox account exists with the email address specified in the call,
+            this call will create a placeholder Dropbox account for the user on the team and send an
+            email inviting the user to migrate their existing personal account onto the team.
+
+            Team member management apps are required to set an initial given_name and surname for a
+            user to use in the team invitation and for 'Perform as team member' actions taken on
+            the user before they become 'active'.
+      x-stone-auth: team
   /team/members/add:
     post:
       summary: |-
@@ -5339,6 +6633,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersAddLaunch'
+      description: |-
+        Adds members to a team.
+
+            Permission : Team member management
+
+            A maximum of 20 members can be specified in a single call.
+
+            If no Dropbox account exists with the email address specified, a new Dropbox account will
+            be created with the given email address, and that account will be invited to the team.
+
+            If a personal Dropbox account exists with the email address specified in the call,
+            this call will create a placeholder Dropbox account for the user on the team and send an
+            email inviting the user to migrate their existing personal account onto the team.
+
+            Team member management apps are required to set an initial given_name and surname for a
+            user to use in the team invitation and for 'Perform as team member' actions taken on
+            the user before they become 'active'.
+      x-stone-auth: team
   /team/members/add/job_status/get:2:
     post:
       summary: |-
@@ -5369,6 +6681,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Once an async_job_id is returned from :route:`members/add:2` ,
+            use this to poll the status of the asynchronous request.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/add/job_status/get:
     post:
       summary: |-
@@ -5399,6 +6717,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Once an async_job_id is returned from :route:`members/add` ,
+            use this to poll the status of the asynchronous request.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/set_profile:2:
     post:
       summary: |-
@@ -5428,6 +6752,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSetProfileError'
+      description: |-
+        Updates a team member's profile.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/set_profile:
     post:
       summary: |-
@@ -5457,6 +6786,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSetProfileError'
+      description: |-
+        Updates a team member's profile.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/set_profile_photo:2:
     post:
       summary: |-
@@ -5486,6 +6820,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSetProfilePhotoError'
+      description: |-
+        Updates a team member's profile photo.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/set_profile_photo:
     post:
       summary: |-
@@ -5515,6 +6854,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSetProfilePhotoError'
+      description: |-
+        Updates a team member's profile photo.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/delete_profile_photo:2:
     post:
       summary: |-
@@ -5544,6 +6888,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersDeleteProfilePhotoError'
+      description: |-
+        Deletes a team member's profile photo.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/delete_profile_photo:
     post:
       summary: |-
@@ -5573,6 +6922,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersDeleteProfilePhotoError'
+      description: |-
+        Deletes a team member's profile photo.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/get_available_team_member_roles:
     post:
       summary: |-
@@ -5590,6 +6944,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersGetAvailableTeamMemberRolesResult'
+      description: |-
+        Get available TeamMemberRoles for the connected team. To be used with :route:`members/set_admin_permissions:2`.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/set_admin_permissions:2:
     post:
       summary: |-
@@ -5619,6 +6978,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSetPermissions2Error'
+      description: |-
+        Updates a team member's permissions.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/set_admin_permissions:
     post:
       summary: |-
@@ -5648,6 +7012,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSetPermissionsError'
+      description: |-
+        Updates a team member's permissions.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/send_welcome_email:
     post:
       summary: |-
@@ -5681,6 +7050,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSendWelcomeError'
+      description: |-
+        Sends welcome email to pending team member.
+
+            Permission : Team member management
+
+            Exactly one of team_member_id, email, or external_id must be provided to identify the user account.
+
+            No-op if team member is not pending.
+      x-stone-auth: team
   /team/members/remove:
     post:
       summary: |-
@@ -5723,6 +7101,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersRemoveError'
+      description: |-
+        Removes a member from a team.
+
+            Permission : Team member management
+
+            Exactly one of team_member_id, email, or external_id must be provided to identify the user account.
+
+            Accounts can be recovered via :route:`members/recover` for a 7 day period
+            or until the account has been permanently deleted or transferred to another account
+            (whichever comes first). Calling :route:`members/add` while a user is still recoverable
+            on your team will return with :field:`MemberAddResult.user_already_on_team`.
+
+            Accounts can have their files transferred via the admin console for a limited time, based on the version history
+            length associated with the team (180 days for most teams).
+
+            This endpoint may initiate an asynchronous job. To obtain the final result
+            of the job, the client should periodically poll :route:`members/remove/job_status/get`.
+      x-stone-auth: team
   /team/members/remove/job_status/get:
     post:
       summary: |-
@@ -5753,6 +7149,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Once an async_job_id is returned from :route:`members/remove` ,
+            use this to poll the status of the asynchronous request.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/suspend:
     post:
       summary: |-
@@ -5784,6 +7186,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersSuspendError'
+      description: |-
+        Suspend a member from a team.
+
+            Permission : Team member management
+
+            Exactly one of team_member_id, email, or external_id must be provided to identify the user account.
+      x-stone-auth: team
   /team/members/unsuspend:
     post:
       summary: |-
@@ -5815,6 +7224,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersUnsuspendError'
+      description: |-
+        Unsuspend a member from a team.
+
+            Permission : Team member management
+
+            Exactly one of team_member_id, email, or external_id must be provided to identify the user account.
+      x-stone-auth: team
   /team/members/recover:
     post:
       summary: |-
@@ -5846,6 +7262,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersRecoverError'
+      description: |-
+        Recover a deleted member.
+
+            Permission : Team member management
+
+            Exactly one of team_member_id, email, or external_id must be provided to identify the user account.
+      x-stone-auth: team
   /team/members/move_former_member_files:
     post:
       summary: |-
@@ -5876,6 +7299,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MembersTransferFormerMembersFilesError'
+      description: |-
+        Moves removed member's files to a different member. This endpoint initiates an asynchronous job. To obtain the final result
+            of the job, the client should periodically poll :route:`members/move_former_member_files/job_status/check`.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/move_former_member_files/job_status/check:
     post:
       summary: |-
@@ -5906,6 +7335,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: |-
+        Once an async_job_id is returned from :route:`members/move_former_member_files` ,
+            use this to poll the status of the asynchronous request.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/legal_holds/create_policy:
     post:
       summary: |-
@@ -5936,6 +7371,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegalHoldsPolicyCreateError'
+      description: |-
+        Creates new legal hold policy.
+            Note: Legal Holds is a paid add-on. Not all teams have the feature.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/legal_holds/get_policy:
     post:
       summary: |-
@@ -5966,6 +7407,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegalHoldsGetPolicyError'
+      description: |-
+        Gets a legal hold by Id.
+            Note: Legal Holds is a paid add-on. Not all teams have the feature.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/legal_holds/list_policies:
     post:
       summary: |-
@@ -5996,6 +7443,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegalHoldsListPoliciesError'
+      description: |-
+        Lists legal holds on a team.
+            Note: Legal Holds is a paid add-on. Not all teams have the feature.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/legal_holds/list_held_revisions:
     post:
       summary: |-
@@ -6026,6 +7479,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegalHoldsListHeldRevisionsError'
+      description: |-
+        List the file metadata that's under the hold.
+            Note: Legal Holds is a paid add-on. Not all teams have the feature.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/legal_holds/list_held_revisions_continue:
     post:
       summary: |-
@@ -6056,6 +7515,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegalHoldsListHeldRevisionsError'
+      description: |-
+        Continue listing the file metadata that's under the hold.
+            Note: Legal Holds is a paid add-on. Not all teams have the feature.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/legal_holds/update_policy:
     post:
       summary: |-
@@ -6086,6 +7551,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegalHoldsPolicyUpdateError'
+      description: |-
+        Updates a legal hold.
+            Note: Legal Holds is a paid add-on. Not all teams have the feature.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /team/legal_holds/release_policy:
     post:
       summary: |-
@@ -6116,6 +7587,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegalHoldsPolicyReleaseError'
+      description: |-
+        Releases a legal hold by Id.
+            Note: Legal Holds is a paid add-on. Not all teams have the feature.
+
+            Permission : Team member file access.
+      x-stone-auth: team
   /sharing/list_folders:
     post:
       summary: Return the list of all shared folders the current user has access to.
@@ -6136,6 +7613,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersResult'
+      description: Return the list of all shared folders the current user has access to.
   /sharing/list_folders/continue:
     post:
       summary: |-
@@ -6165,6 +7643,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`list_folders`, use this to paginate through all
+            shared folders. The cursor must come from a previous call to :route:`list_folders` or
+            :route:`list_folders/continue`.
   /sharing/list_mountable_folders:
     post:
       summary: Return the list of all shared folders the current user can mount or unmount.
@@ -6185,6 +7667,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersResult'
+      description: Return the list of all shared folders the current user can mount or unmount.
   /sharing/list_mountable_folders/continue:
     post:
       summary: |-
@@ -6214,6 +7697,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`list_mountable_folders`, use this to paginate through all
+            mountable shared folders. The cursor must come from a previous call to :route:`list_mountable_folders` or
+            :route:`list_mountable_folders/continue`.
   /sharing/get_folder_metadata:
     post:
       summary: Returns shared folder metadata by its folder ID.
@@ -6240,6 +7727,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharedFolderAccessError'
+      description: Returns shared folder metadata by its folder ID.
+      x-stone-select-admin-mode: whole_team
   /sharing/list_folder_members:
     post:
       summary: Returns shared folder membership by its folder ID.
@@ -6266,6 +7755,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharedFolderAccessError'
+      description: Returns shared folder membership by its folder ID.
+      x-stone-select-admin-mode: whole_team
   /sharing/list_folder_members/continue:
     post:
       summary: |-
@@ -6294,6 +7785,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderMembersContinueError'
+      description: |-
+        Once a cursor has been retrieved from :route:`list_folder_members`, use this to paginate
+            through all shared folder members.
+      x-stone-select-admin-mode: whole_team
   /sharing/share_folder:
     post:
       summary: |-
@@ -6329,6 +7824,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ShareFolderError'
+      description: |-
+        Share a folder with collaborators.
+
+            Most sharing will be completed synchronously. Large folders will be
+            completed asynchronously. To make testing the async case repeatable, set
+            `ShareFolderArg.force_async`.
+
+            If a :field:`ShareFolderLaunch.async_job_id` is returned, you'll need to
+            call :route:`check_share_job_status` until the action completes to get the
+            metadata for the folder.
+      x-stone-select-admin-mode: team_admin
   /sharing/check_share_job_status:
     post:
       summary: Returns the status of an asynchronous job for sharing a folder.
@@ -6355,6 +7861,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: Returns the status of an asynchronous job for sharing a folder.
+      x-stone-select-admin-mode: team_admin
   /sharing/check_job_status:
     post:
       summary: Returns the status of an asynchronous job.
@@ -6381,6 +7889,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: Returns the status of an asynchronous job.
+      x-stone-select-admin-mode: team_admin
   /sharing/unshare_folder:
     post:
       summary: |-
@@ -6411,6 +7921,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnshareFolderError'
+      description: |-
+        Allows a shared folder owner to unshare the folder.
+
+            You'll need to call :route:`check_job_status` to determine if the action has
+            completed successfully.
+      x-stone-select-admin-mode: team_admin
   /sharing/transfer_folder:
     post:
       summary: |-
@@ -6440,6 +7956,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransferFolderError'
+      description: |-
+        Transfer ownership of a shared folder to a member of the shared folder.
+
+            User must have :field:`AccessLevel.owner` access to the shared folder to perform a transfer.
+      x-stone-select-admin-mode: team_admin
   /sharing/update_folder_policy:
     post:
       summary: |-
@@ -6469,6 +7990,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateFolderPolicyError'
+      description: |-
+        Update the sharing policies for a shared folder.
+
+            User must have :field:`AccessLevel.owner` access to the shared folder to update its policies.
+      x-stone-select-admin-mode: team_admin
   /sharing/add_folder_member:
     post:
       summary: |-
@@ -6500,6 +8026,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddFolderMemberError'
+      description: |-
+        Allows an owner or editor (if the ACL update policy allows) of a shared
+            folder to add another member.
+
+            For the new member to get access to all the functionality for this folder,
+            you will need to call :route:`mount_folder` on their behalf.
+      x-stone-select-admin-mode: team_admin
   /sharing/remove_folder_member:
     post:
       summary: |-
@@ -6528,6 +8061,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemoveFolderMemberError'
+      description: |-
+        Allows an owner or editor (if the ACL update policy allows) of a shared
+            folder to remove another member.
+      x-stone-select-admin-mode: team_admin
   /sharing/check_remove_member_job_status:
     post:
       summary: Returns the status of an asynchronous job for sharing a folder.
@@ -6554,6 +8091,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      description: Returns the status of an asynchronous job for sharing a folder.
+      x-stone-select-admin-mode: team_admin
   /sharing/update_folder_member:
     post:
       summary: |-
@@ -6582,6 +8121,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateFolderMemberError'
+      description: |-
+        Allows an owner or editor of a shared folder to update another member's
+            permissions.
+      x-stone-select-admin-mode: team_admin
   /sharing/mount_folder:
     post:
       summary: |-
@@ -6612,6 +8155,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MountFolderError'
+      description: |-
+        The current user mounts the designated folder.
+
+            Mount a shared folder for a user after they have been added as a member.
+            Once mounted, the shared folder will appear in their Dropbox.
   /sharing/unmount_folder:
     post:
       summary: |-
@@ -6640,6 +8188,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnmountFolderError'
+      description: |-
+        The current user unmounts the designated folder. They can re-mount the
+            folder at a later time using :route:`mount_folder`.
+      x-stone-select-admin-mode: team_admin
   /sharing/relinquish_folder_membership:
     post:
       summary: |-
@@ -6672,6 +8224,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelinquishFolderMembershipError'
+      description: |-
+        The current user relinquishes their membership in the designated shared
+            folder and will no longer have access to the folder.  A folder owner cannot
+            relinquish membership in their own folder.
+
+            This will run synchronously if leave_a_copy is false, and asynchronously
+            if leave_a_copy is true.
   /sharing/set_access_inheritance:
     post:
       summary: |-
@@ -6703,6 +8262,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SetAccessInheritanceError'
+      description: |-
+        Change the inheritance policy of an existing Shared Folder. Only permitted for shared folders in a shared team root.
+
+            If a :field:`ShareFolderLaunch.async_job_id` is returned, you'll need to
+            call :route:`check_share_job_status` until the action completes to get the
+            metadata for the folder.
   /team/member_space_limits/set_custom_quota:
     post:
       summary: |-
@@ -6733,6 +8298,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SetCustomQuotaError'
+      description: |-
+        Set users custom quota. Custom quota has to be at least 15GB.
+            A maximum of 1000 members can be specified in a single call.
+            Note: to apply a custom space limit, a team admin needs to set a member space limit for the team first.
+            (the team admin can check the settings here: https://www.dropbox.com/team/admin/settings/space).
+      x-stone-auth: team
   /team/member_space_limits/remove_custom_quota:
     post:
       summary: |-
@@ -6763,6 +8334,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomQuotaError'
+      description: |-
+        Remove users custom quota.
+            A maximum of 1000 members can be specified in a single call.
+            Note: to apply a custom space limit, a team admin needs to set a member space limit for the team first.
+            (the team admin can check the settings here: https://www.dropbox.com/team/admin/settings/space).
+      x-stone-auth: team
   /team/member_space_limits/get_custom_quota:
     post:
       summary: |-
@@ -6793,6 +8370,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomQuotaError'
+      description: |-
+        Get users custom quota.
+            A maximum of 1000 members can be specified in a single call.
+            Note: to apply a custom space limit, a team admin needs to set a member space limit for the team first.
+            (the team admin can check the settings here: https://www.dropbox.com/team/admin/settings/space).
+      x-stone-auth: team
   /team/member_space_limits/excluded_users/add:
     post:
       summary: Add users to member space limits excluded users list.
@@ -6819,6 +8402,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExcludedUsersUpdateError'
+      description: Add users to member space limits excluded users list.
+      x-stone-auth: team
   /team/member_space_limits/excluded_users/remove:
     post:
       summary: Remove users from member space limits excluded users list.
@@ -6845,6 +8430,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExcludedUsersUpdateError'
+      description: Remove users from member space limits excluded users list.
+      x-stone-auth: team
   /team/member_space_limits/excluded_users/list:
     post:
       summary: List member space limits excluded users.
@@ -6871,6 +8458,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExcludedUsersListError'
+      description: List member space limits excluded users.
+      x-stone-auth: team
   /team/member_space_limits/excluded_users/list/continue:
     post:
       summary: Continue listing member space limits excluded users.
@@ -6897,6 +8486,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExcludedUsersListContinueError'
+      description: Continue listing member space limits excluded users.
+      x-stone-auth: team
   /team/members/secondary_emails/add:
     post:
       summary: |-
@@ -6929,6 +8520,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddSecondaryEmailsError'
+      description: |-
+        Add secondary emails to users.
+
+            Permission : Team member management.
+
+            Emails that are on verified domains will be verified automatically.
+            For each email address not on a verified domain a verification email will be sent.
+      x-stone-auth: team
   /team/members/secondary_emails/resend_verification_emails:
     post:
       summary: |-
@@ -6952,6 +8551,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResendVerificationEmailResult'
+      description: |-
+        Resend secondary email verification emails.
+
+            Permission : Team member management.
+      x-stone-auth: team
   /team/members/secondary_emails/delete:
     post:
       summary: |-
@@ -6977,6 +8581,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteSecondaryEmailsResult'
+      description: |-
+        Delete secondary emails from users
+
+            Permission : Team member management.
+
+            Users will be notified of deletions of verified secondary emails at both the secondary email and their primary email.
+      x-stone-auth: team
 components:
   securitySchemes:
     oauth2:
@@ -9761,12 +11372,12 @@ components:
       required:
       - .tag
       description: There was an error deleting all closed file requests.
-    FileRequestId:
-      type: string
-      minLength: 1
     FileRequestValidationError:
       type: string
       nullable: true
+    FileRequestId:
+      type: string
+      minLength: 1
     RefPaperDoc:
       type: object
       properties:
@@ -11365,36 +12976,36 @@ components:
         propertyName: .tag
         mapping:
           invalid_root: '#/components/schemas/RootInfo'
-    OptionalNamePart:
+    DisplayName:
       type: string
-      maxLength: 100
-    SessionId:
+    EmailAddress:
+      type: string
+      maxLength: 255
+    NamespaceId:
       type: string
     SharedFolderId:
       allOf:
       - $ref: '#/components/schemas/NamespaceId'
-    DropboxTimestamp:
-      type: string
-      format: date-time
-    DisplayName:
-      type: string
-    NamePart:
-      type: string
-      minLength: 1
-      maxLength: 100
-    EmailAddress:
-      type: string
-      maxLength: 255
-    Date:
-      type: string
-      format: date-time
-    DisplayNameLegacy:
-      type: string
-    NamespaceId:
+    SessionId:
       type: string
     LanguageCode:
       type: string
       minLength: 2
+    DropboxTimestamp:
+      type: string
+      format: date-time
+    NamePart:
+      type: string
+      minLength: 1
+      maxLength: 100
+    DisplayNameLegacy:
+      type: string
+    OptionalNamePart:
+      type: string
+      maxLength: 100
+    Date:
+      type: string
+      format: date-time
     DeleteManualContactsArg:
       type: object
       properties:
@@ -13815,46 +15426,46 @@ components:
         propertyName: .tag
         mapping:
           path: '#/components/schemas/LookupError'
-    SearchV2Cursor:
+    SharedLinkUrl:
       type: string
-      minLength: 1
-    FileId:
-      type: string
-      minLength: 4
-    WritePath:
-      type: string
-    Rev:
-      allOf:
-      - $ref: '#/components/schemas/Rev'
-    Sha256HexHash:
-      type: string
-      minLength: 64
-      maxLength: 64
     CopyBatchArg:
       allOf:
       - $ref: '#/components/schemas/RelocationBatchArgBase'
-    SharedLinkUrl:
+    WritePathOrId:
       type: string
-    ListFolderCursor:
+    PathR:
+      type: string
+    ReadPath:
+      allOf:
+      - $ref: '#/components/schemas/ReadPath'
+    SearchV2Cursor:
       type: string
       minLength: 1
     Id:
       allOf:
       - $ref: '#/components/schemas/Id'
-    PathROrId:
-      type: string
-    ReadPath:
-      allOf:
-      - $ref: '#/components/schemas/ReadPath'
     MalformedPathError:
       type: string
       nullable: true
-    WritePathOrId:
+    WritePath:
       type: string
+    PathROrId:
+      type: string
+    ListFolderCursor:
+      type: string
+      minLength: 1
+    Rev:
+      allOf:
+      - $ref: '#/components/schemas/Rev'
     Path:
       type: string
-    PathR:
+    FileId:
       type: string
+      minLength: 4
+    Sha256HexHash:
+      type: string
+      minLength: 64
+      maxLength: 64
     Route:
       type: object
       properties:
@@ -14477,10 +16088,10 @@ components:
           - reset
       required:
       - .tag
-    TemplateId:
+    PropertiesSearchCursor:
       type: string
       minLength: 1
-    PropertiesSearchCursor:
+    TemplateId:
       type: string
       minLength: 1
     JoinTeamDetails:
@@ -27184,9 +28795,9 @@ components:
       required:
       - .tag
       description: The type of the event.
-    AppId:
-      type: string
     FilePath:
+      type: string
+    AppId:
       type: string
     RequestId:
       type: string
@@ -29099,26 +30710,26 @@ components:
           - legal_hold_policy_not_found
       required:
       - .tag
-    LegalHoldsGetPolicyResult:
-      allOf:
-      - $ref: '#/components/schemas/LegalHoldPolicy'
-    LegalHoldsPolicyUpdateResult:
-      allOf:
-      - $ref: '#/components/schemas/LegalHoldPolicy'
-    LegalHoldId:
-      type: string
-    LegalHoldPolicyDescription:
-      type: string
-      maxLength: 501
     ListHeldRevisionCursor:
       type: string
       minLength: 1
     LegalHoldsPolicyCreateResult:
       allOf:
       - $ref: '#/components/schemas/LegalHoldPolicy'
+    LegalHoldsPolicyUpdateResult:
+      allOf:
+      - $ref: '#/components/schemas/LegalHoldPolicy'
     LegalHoldPolicyName:
       type: string
       maxLength: 140
+    LegalHoldPolicyDescription:
+      type: string
+      maxLength: 501
+    LegalHoldId:
+      type: string
+    LegalHoldsGetPolicyResult:
+      allOf:
+      - $ref: '#/components/schemas/LegalHoldPolicy'
     GroupSummary:
       type: object
       properties:
@@ -29182,18 +30793,18 @@ components:
       required:
       - .tag
       description: The type of the space limit imposed on a team member.
-    TeamMemberId:
+    ResellerId:
+      type: string
+    GroupExternalId:
       type: string
     TeamId:
-      type: string
-    GroupId:
       type: string
     MemberExternalId:
       type: string
       maxLength: 64
-    GroupExternalId:
+    TeamMemberId:
       type: string
-    ResellerId:
+    GroupId:
       type: string
     FolderPolicy:
       type: object
