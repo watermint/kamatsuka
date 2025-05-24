@@ -26,6 +26,7 @@ use chrono::Local;
 
 mod converter;
 mod verifier;
+mod modeller;
 
 #[derive(PestParserDerive)]
 #[grammar = "stone.pest"]
@@ -51,6 +52,21 @@ enum Commands {
         /// Path to OpenAPI YAML file
         #[arg(short, long)]
         openapi: String,
+        
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+    
+    /// Convert OpenAPI specification to Alloy definitions
+    Modeller {
+        /// Path to OpenAPI YAML file
+        #[arg(short = 'a', long)]
+        openapi: String,
+        
+        /// Output Alloy file path
+        #[arg(short, long)]
+        output: String,
         
         /// Verbose output
         #[arg(short, long)]
@@ -128,6 +144,9 @@ fn main() -> Result<()> {
         }
         Commands::Convert { stone, output, base_url, verbose } => {
             convert_command(stone, output, base_url, *verbose)
+        }
+        Commands::Modeller { openapi, output, verbose } => {
+            modeller_command(openapi, output, *verbose)
         }
         Commands::VerifyStone { path, verbose } => {
             verify_stone_command(path, *verbose)
@@ -361,6 +380,11 @@ fn check_missing_definitions_command(openapi_path: &str, stone_dir: &str, verbos
     }
     
     Ok(())
+}
+
+/// Convert OpenAPI specification to Alloy definitions
+fn modeller_command(openapi_path: &str, output_path: &str, verbose: bool) -> Result<()> {
+    modeller::convert_openapi_to_alloy(openapi_path, output_path, verbose)
 }
 
 fn validate_openapi_command(openapi_path: &str, verbose: bool) -> Result<()> {
