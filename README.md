@@ -61,6 +61,16 @@ cargo run -- convert --stone stone/dropbox-api-spec --output dropbox-api-complet
 cargo run -- convert --stone stone/dropbox-api-spec --output api.yaml --base-url https://api.example.com/v2
 ```
 
+**Individual Dropbox Accounts (User Endpoints Only):**
+```bash
+cargo run -- convert-individual --stone stone/dropbox-api-spec --output dropbox-api-individual.yaml
+```
+
+**Team Admins (User + Business Endpoints with Team Headers):**
+```bash
+cargo run -- convert-team --stone stone/dropbox-api-spec --output dropbox-api-team.yaml
+```
+
 ### Validate OpenAPI Specification
 
 **Basic Validation:**
@@ -85,9 +95,27 @@ cargo run -- compare --stone path/to/file.stone --openapi path/to/api.yaml --ver
 cargo run -- verify-stone --path stone/dropbox-api-spec --verbose
 ```
 
-## Generated OpenAPI Specification
+## Generated OpenAPI Specifications
 
-The tool generates a complete OpenAPI 3.0.3 specification from Dropbox's Stone DSL definitions:
+The tool generates OpenAPI 3.0.3 specifications from Dropbox's Stone DSL definitions. Three different specifications can be generated:
+
+### Dropbox API - Complete (Default)
+The standard complete specification including all endpoints.
+
+### Dropbox API - Individual 
+Tailored for individual Dropbox accounts:
+- **User endpoints only** (no business/team endpoints)
+- **Standard OAuth2 authentication**
+- **Smaller file size** (~377KB)
+- **Use case**: Personal applications, individual developers
+
+### Dropbox API - Team
+Designed for team administrators:
+- **All endpoints** (user + business)
+- **Team admin headers** (`Dropbox-API-Select-User`, `Dropbox-API-Select-Admin`)
+- **Complete functionality** for team management
+- **Larger file size** (~1.2MB)
+- **Use case**: Business applications, team management tools
 
 ### Statistics (Dropbox API Complete)
 - **API Endpoints:** 243 routes

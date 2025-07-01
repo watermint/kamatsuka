@@ -287,6 +287,30 @@ pub fn convert_stone_to_openapi(stone_path: &str, base_url: &str) -> Result<Open
     }
 }
 
+pub fn convert_stone_to_openapi_individual(stone_path: &str, base_url: &str) -> Result<OpenApiSpec> {
+    let path = Path::new(stone_path);
+    info!("Converting Stone to OpenAPI for Individual Dropbox Accounts: {}", stone_path);
+    
+    if path.is_dir() {
+        info!("Converting directory of Stone files for individual users");
+        convert_stone_directory_to_openapi_individual(stone_path, base_url)
+    } else {
+        Err(anyhow::anyhow!("Individual conversion requires a directory path: {}", stone_path))
+    }
+}
+
+pub fn convert_stone_to_openapi_team(stone_path: &str, base_url: &str) -> Result<OpenApiSpec> {
+    let path = Path::new(stone_path);
+    info!("Converting Stone to OpenAPI for Team Admins: {}", stone_path);
+    
+    if path.is_dir() {
+        info!("Converting directory of Stone files for team admins");
+        convert_stone_directory_to_openapi_team(stone_path, base_url)
+    } else {
+        Err(anyhow::anyhow!("Team conversion requires a directory path: {}", stone_path))
+    }
+}
+
 pub fn convert_stone_directory_to_openapi(dir_path: &str, base_url: &str) -> Result<OpenApiSpec> {
     let mut all_namespaces = Vec::new();
     let mut namespace_map = HashMap::new();
@@ -323,6 +347,99 @@ pub fn convert_stone_directory_to_openapi(dir_path: &str, base_url: &str) -> Res
     
     // Merge all namespaces into a single OpenAPI spec
     merge_namespaces_to_openapi(&all_namespaces, &namespace_map, base_url)
+}
+
+pub fn convert_stone_directory_to_openapi_individual(dir_path: &str, base_url: &str) -> Result<OpenApiSpec> {
+    let mut all_namespaces = Vec::new();
+    let mut namespace_map = HashMap::new();
+    
+    info!("Scanning directory for Stone files (individual user endpoints): {}", dir_path);
+    
+    // Define business endpoint namespaces to exclude
+    let business_namespaces = [
+        "team", "team_common", "team_devices", "team_folders", "team_groups", 
+        "team_legal_holds", "team_linked_apps", "team_log", "team_log_generated",
+        "team_member_space_limits", "team_members", "team_namespaces", 
+        "team_policies", "team_reports", "team_secondary_mails", 
+        "team_sharing_allowlist"
+    ];
+    
+    // First pass: Parse all Stone files, excluding business endpoints
+    for entry in fs::read_dir(dir_path)? {
+        let entry = entry?;
+        let file_path = entry.path();
+        
+        if file_path.extension().map_or(false, |ext| ext == "stone") {
+            let file_name = file_path.file_stem().unwrap().to_string_lossy();
+            
+            // Skip business endpoint files
+            if business_namespaces.contains(&file_name.as_ref()) {
+                info!("Skipping business endpoint file: {:?}", file_path);
+                continue;
+            }
+            
+            info!("Processing Stone file for individual users: {:?}", file_path);
+            let content = fs::read_to_string(&file_path)
+                .with_context(|| format!("Failed to read Stone file: {:?}", file_path))?;
+            
+            let namespace = parse_stone_dsl(&content)
+                .with_context(|| format!("Failed to parse Stone file: {:?}", file_path))?;
+            
+            debug!("Parsed namespace '{}' with {} routes, {} structs, {} unions", 
+                namespace.name, namespace.routes.len(), namespace.structs.len(), namespace.unions.len());
+            
+            namespace_map.insert(namespace.name.clone(), namespace.clone());
+            all_namespaces.push(namespace);
+        }
+    }
+    
+    if all_namespaces.is_empty() {
+        warn!("No user endpoint .stone files found in directory: {}", dir_path);
+        return Err(anyhow::anyhow!("No user endpoint .stone files found in directory: {}", dir_path));
+    }
+    
+    info!("Merging {} user endpoint namespaces into OpenAPI spec", all_namespaces.len());
+    
+    // Merge all namespaces into a single OpenAPI spec for individual users
+    merge_namespaces_to_openapi_individual(&all_namespaces, &namespace_map, base_url)
+}
+
+pub fn convert_stone_directory_to_openapi_team(dir_path: &str, base_url: &str) -> Result<OpenApiSpec> {
+    let mut all_namespaces = Vec::new();
+    let mut namespace_map = HashMap::new();
+    
+    info!("Scanning directory for Stone files (team admin endpoints): {}", dir_path);
+    
+    // First pass: Parse all Stone files (both user and business endpoints)
+    for entry in fs::read_dir(dir_path)? {
+        let entry = entry?;
+        let file_path = entry.path();
+        
+        if file_path.extension().map_or(false, |ext| ext == "stone") {
+            info!("Processing Stone file for team admins: {:?}", file_path);
+            let content = fs::read_to_string(&file_path)
+                .with_context(|| format!("Failed to read Stone file: {:?}", file_path))?;
+            
+            let namespace = parse_stone_dsl(&content)
+                .with_context(|| format!("Failed to parse Stone file: {:?}", file_path))?;
+            
+            debug!("Parsed namespace '{}' with {} routes, {} structs, {} unions", 
+                namespace.name, namespace.routes.len(), namespace.structs.len(), namespace.unions.len());
+            
+            namespace_map.insert(namespace.name.clone(), namespace.clone());
+            all_namespaces.push(namespace);
+        }
+    }
+    
+    if all_namespaces.is_empty() {
+        warn!("No .stone files found in directory: {}", dir_path);
+        return Err(anyhow::anyhow!("No .stone files found in directory: {}", dir_path));
+    }
+    
+    info!("Merging {} namespaces into OpenAPI spec for team admins", all_namespaces.len());
+    
+    // Merge all namespaces into a single OpenAPI spec for team admins
+    merge_namespaces_to_openapi_team(&all_namespaces, &namespace_map, base_url)
 }
 
 pub fn parse_stone_dsl(content: &str) -> Result<StoneNamespace> {
@@ -747,334 +864,57 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
     for namespace in namespaces {
         // Convert routes to paths
         for route in &namespace.routes {
-        let path = format!("/{}/{}", namespace.name, route.name);
-        let mut path_methods = IndexMap::new();
-        
-        // Extract route attributes
-        let host = route.attrs.get("host").cloned();
-        let auth = route.attrs.get("auth").cloned();
-        let style = route.attrs.get("style").cloned();
-        let is_preview = route.attrs.get("is_preview").map(|v| v == "true");
-        let allow_app_folder = route.attrs.get("allow_app_folder_app").map(|v| v == "true");
-        let select_admin_mode = route.attrs.get("select_admin_mode").cloned();
-        let cloud_doc_auth = route.attrs.get("is_cloud_doc_auth").map(|v| v == "true");
-        
-        // Prepare enhanced description based on style
-        let style_description = match style.as_deref() {
-            Some("rpc") => Some("RPC-style endpoint: Both request and response bodies are JSON.".to_string()),
-            Some("upload") => Some("Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.".to_string()),
-            Some("download") => Some("Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.".to_string()),
-            _ => None,
-        };
-        
-        // Build the full description including style information
-        let description = if let Some(style_desc) = style_description {
-            let base_desc = route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name));
-            format!("{} {}", base_desc, style_desc)
-        } else {
-            route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name))
-        };
-        
-        // Prepare parameters based on style
-        let parameters = match style.as_deref() {
-            Some("upload") | Some("download") => {
-                // For upload and download styles, create parameter with content object
-                let mut param = OpenApiParameter {
-                    name: "Dropbox-API-Arg".to_string(),
-                    parameter_in: "header".to_string(),
-                    description: "The request parameters as a JSON encoded string in this header.".to_string(),
-                    required: true,
-                    schema: None, // Not using simple schema anymore, using content instead
-                    content: None, // Will be populated later
-                };
-                
-                // Add content field with proper schema reference if parameters are available
-                if route.params.len() > 0 && route.params[0] != "Void" {
-                    // Create content map with application/json pointing to the parameter schema
-                    let mut content = IndexMap::new();
-                    content.insert("application/json".to_string(), OpenApiMediaType {
-                        schema: OpenApiSchemaRef::Reference {
-                            reference: format!("#/components/schemas/{}", clean_type_name(&route.params[0]))
-                        },
-                        example: None,
-                    });
-                    param.content = Some(content);
-                } else {
-                    // If no schema available, still provide content with a generic object schema
-                    let mut content = IndexMap::new();
-                    content.insert("application/json".to_string(), OpenApiMediaType {
-                        schema: OpenApiSchemaRef::Inline(OpenApiSchema {
-                            schema_type: Some("object".to_string()),
-                            description: Some("JSON parameters for this request".to_string()),
-                            properties: None,
-                            required: None,
-                            all_of: None,
-                            items: None,
-                            enum_values: None,
-                            format: None,
-                            min_length: None,
-                            max_length: None,
-                            minimum: None,
-                            maximum: None,
-                            nullable: None,
-                            discriminator: None,
-                        }),
-                        example: None,
-                    });
-                    param.content = Some(content);
-                }
-                
-                Some(vec![param])
-            },
-            _ => None,
-        };
-        
-        // Prepare response headers for download-style endpoints
-        let response_headers = if style.as_deref() == Some("download") {
-            let mut headers = IndexMap::new();
+            let path = format!("/{}/{}", namespace.name, route.name);
+            let mut path_methods = IndexMap::new();
             
-            // Create header with content for Dropbox-API-Result
-            let mut header = OpenApiHeader {
-                description: "The JSON metadata response encoded as a string in this header.".to_string(),
-                schema: None, // We'll use content instead of schema
-                required: Some(true),
-                content: None, // Will be populated later
+            // Extract route attributes
+            let host = route.attrs.get("host").cloned();
+            let auth = route.attrs.get("auth").cloned();
+            let style = route.attrs.get("style").cloned();
+            let is_preview = route.attrs.get("is_preview").map(|v| v == "true");
+            let allow_app_folder = route.attrs.get("allow_app_folder_app").map(|v| v == "true");
+            let select_admin_mode = route.attrs.get("select_admin_mode").cloned();
+            let cloud_doc_auth = route.attrs.get("is_cloud_doc_auth").map(|v| v == "true");
+            
+            // Prepare enhanced description based on style
+            let style_description = match style.as_deref() {
+                Some("rpc") => Some("RPC-style endpoint: Both request and response bodies are JSON.".to_string()),
+                Some("upload") => Some("Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.".to_string()),
+                Some("download") => Some("Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.".to_string()),
+                _ => None,
             };
             
-            // Add content with proper schema reference if result type is available
-            if route.params.len() >= 2 && route.params[1] != "Void" {
-                let result_type = &route.params[1];
-                let mut content = IndexMap::new();
-                content.insert("application/json".to_string(), OpenApiMediaType {
-                    schema: OpenApiSchemaRef::Reference {
-                        reference: format!("#/components/schemas/{}", clean_type_name(result_type))
-                    },
-                    example: None,
-                });
-                header.content = Some(content);
+            // Build the full description including style information
+            let description = if let Some(style_desc) = style_description {
+                let base_desc = route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name));
+                format!("{} {}", base_desc, style_desc)
             } else {
-                // Generic content for unknown result types
-                let mut content = IndexMap::new();
-                content.insert("application/json".to_string(), OpenApiMediaType {
-                    schema: OpenApiSchemaRef::Inline(OpenApiSchema {
-                        schema_type: Some("object".to_string()),
-                        description: Some("JSON metadata for the downloaded file".to_string()),
-                        properties: None,
-                        required: None,
-                        all_of: None,
-                        items: None,
-                        enum_values: None,
-                        format: None,
-                        min_length: None,
-                        max_length: None,
-                        minimum: None,
-                        maximum: None,
-                        nullable: None,
-                        discriminator: None,
-                    }),
-                    example: None,
-                });
-                header.content = Some(content);
-            }
+                route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name))
+            };
             
-            headers.insert("Dropbox-API-Result".to_string(), header);
-            Some(headers)
-        } else {
-            None
-        };
-        
-        let operation = OpenApiOperation {
-            summary: route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name)),
-            description: Some(description),
-            operation_id: route.name.clone(),
-            security: vec![{
-                let mut security_req = IndexMap::new();
-                let scope = route.attrs.get("scope").unwrap_or(&"account_info.read".to_string()).clone();
-                security_req.insert("oauth2".to_string(), vec![scope]);
-                security_req
-            }],
-            // Add server based on host attribute
-            servers: match host.as_deref() {
-                Some("content") => Some(vec![OpenApiServer {
-                    url: base_url.replace("api", "content"),
-                    description: "Dropbox Content Server".to_string(),
-                }]),
-                Some("notify") => Some(vec![OpenApiServer {
-                    url: base_url.replace("api", "notify"),
-                    description: "Dropbox Notify Server".to_string(),
-                }]),
-                Some(host_value) => Some(vec![OpenApiServer {
-                    url: base_url.replace("api", host_value),
-                    description: format!("Dropbox {} Server", host_value),
-                }]),
-                None => None, // Use the default server
-            },
-            parameters,
+            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, false)?;
             
-            // Add Stone-specific attributes as OpenAPI extensions
-            stone_auth: auth,
-            stone_style: style.clone(),
-            stone_preview: is_preview,
-            stone_allow_app_folder: allow_app_folder,
-            stone_select_admin_mode: select_admin_mode,
-            stone_cloud_doc_auth: cloud_doc_auth,
-            // Prepare request body based on style and parameters
-            request_body: match style.as_deref() {
-                // For upload-style endpoints, the request body is binary data
-                Some("upload") => Some(OpenApiRequestBody {
-                    required: true,
-                    content: {
-                        let mut content = IndexMap::new();
-                        // For uploads, the request body is the file content
-                        content.insert("application/octet-stream".to_string(), OpenApiMediaType {
-                            schema: OpenApiSchemaRef::Inline(OpenApiSchema {
-                                schema_type: Some("string".to_string()),
-                                properties: None,
-                                required: None,
-                                all_of: None,
-                                items: None,
-                                format: Some("binary".to_string()),
-                                enum_values: None,
-                                description: None,
-                                min_length: None,
-                                max_length: None,
-                                minimum: None,
-                                maximum: None,
-                                nullable: None,
-                                discriminator: None,
-                            }),
-                            example: None,
-                        });
-                        content
-                    },
-                }),
-                // For download-style endpoints, there's no request body (parameters go in the Dropbox-API-Arg header)
-                Some("download") => None,
-                // For RPC-style endpoints, follow the standard JSON request pattern
-                _ => if route.params.len() > 1 && route.params[0] != "Void" {
-                    Some(OpenApiRequestBody {
-                        required: true,
-                        content: {
-                            let mut content = IndexMap::new();
-                            content.insert("application/json".to_string(), OpenApiMediaType {
-                                schema: OpenApiSchemaRef::Reference {
-                                    reference: format!("#/components/schemas/{}", clean_type_name(&route.params[0]))
-                                },
-                                example: None,
-                            });
-                            content
-                        },
-                    })
-                } else {
-                    None
-                },
-            },
-            responses: {
-                let mut responses = IndexMap::new();
-                
-                // Handle style-specific responses
-                match style.as_deref() {
-                    // For download-style endpoints, the response body is binary data
-                    Some("download") => {
-                        responses.insert("200".to_string(), OpenApiResponse {
-                            description: "Successful response with file content".to_string(),
-                            content: Some({
-                                let mut content = IndexMap::new();
-                                content.insert("application/octet-stream".to_string(), OpenApiMediaType {
-                                    schema: OpenApiSchemaRef::Inline(OpenApiSchema {
-                                        schema_type: Some("string".to_string()),
-                                        properties: None,
-                                        required: None,
-                                        all_of: None,
-                                        items: None,
-                                        format: Some("binary".to_string()),
-                                        enum_values: None,
-                                        description: None,
-                                        min_length: None,
-                                        max_length: None,
-                                        minimum: None,
-                                        maximum: None,
-                                        nullable: None,
-                                        discriminator: None,
-                                    }),
-                                    example: None,
-                                });
-                                content
-                            }),
-                            headers: response_headers,
-                        });
-                    },
-                    // For RPC and upload-style endpoints, follow the standard JSON response pattern
-                    _ => {
-                        if route.params.len() > 1 {
-                            responses.insert("200".to_string(), OpenApiResponse {
-                                description: "Successful response".to_string(),
-                                content: Some({
-                                    let mut content = IndexMap::new();
-                                    content.insert("application/json".to_string(), OpenApiMediaType {
-                                        schema: OpenApiSchemaRef::Reference {
-                                            reference: format!("#/components/schemas/{}", clean_type_name(&route.params[1]))
-                                        },
-                                        example: None,
-                                    });
-                                    content
-                                }),
-                                headers: None,
-                            });
-                        } else {
-                            responses.insert("200".to_string(), OpenApiResponse {
-                                description: "Successful response".to_string(),
-                                content: None,
-                                headers: None,
-                            });
-                        }
-                    }
-                }
-                
-                // Add error responses
-                if route.params.len() > 2 && route.params[2] != "Void" {
-                    responses.insert("400".to_string(), OpenApiResponse {
-                        description: "Error response".to_string(),
-                        content: Some({
-                            let mut content = IndexMap::new();
-                            content.insert("application/json".to_string(), OpenApiMediaType {
-                                schema: OpenApiSchemaRef::Reference {
-                                    reference: format!("#/components/schemas/{}", clean_type_name(&route.params[2]))
-                                },
-                                example: None,
-                            });
-                            content
-                        }),
-                        headers: None,
-                    });
-                }
-                
-                responses
-            },
-        };
+            path_methods.insert("post".to_string(), operation);
+            paths.insert(path, path_methods);
+        }
         
-        path_methods.insert("post".to_string(), operation);
-        paths.insert(path, path_methods);
-    }
-    
         // Convert structs to schemas
         for struct_def in &namespace.structs {
             let schema = convert_struct_to_schema(struct_def, namespace_map)?;
-        schemas.insert(struct_def.name.clone(), schema);
-    }
-    
+            schemas.insert(struct_def.name.clone(), schema);
+        }
+        
         // Convert unions to schemas
         for union_def in &namespace.unions {
             let schema = convert_union_to_schema(union_def, namespace_map)?;
-        schemas.insert(union_def.name.clone(), schema);
-    }
-    
+            schemas.insert(union_def.name.clone(), schema);
+        }
+        
         // Convert aliases to schemas
         for (name, alias_type) in &namespace.aliases {
             let schema = convert_alias_to_schema(alias_type, namespace_map)?;
             schemas.insert(name.clone(), schema);
         }
-    
     }
     
     // Collect all unique scopes from routes
@@ -1097,8 +937,8 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
             },
         },
         servers: {
-            // Define multiple servers based on host attribute values
-            let mut servers = vec![
+                    // Define multiple servers based on host attribute values
+        let servers = vec![
                 // Default API server
                 OpenApiServer {
                     url: base_url.to_string(),
@@ -1138,6 +978,353 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
     };
     
     Ok(openapi_spec)
+}
+
+fn create_openapi_operation(
+    route: &StoneRoute, 
+    description: &str, 
+    host: &Option<String>, 
+    auth: &Option<String>, 
+    style: &Option<String>, 
+    is_preview: Option<bool>, 
+    allow_app_folder: Option<bool>, 
+    select_admin_mode: Option<String>, 
+    cloud_doc_auth: Option<bool>, 
+    base_url: &str,
+    add_team_headers: bool
+) -> Result<OpenApiOperation> {
+    // Prepare parameters based on style
+    let mut parameters = match style.as_deref() {
+        Some("upload") | Some("download") => {
+            // For upload and download styles, create parameter with content object
+            let mut param = OpenApiParameter {
+                name: "Dropbox-API-Arg".to_string(),
+                parameter_in: "header".to_string(),
+                description: "The request parameters as a JSON encoded string in this header.".to_string(),
+                required: true,
+                schema: None, // Not using simple schema anymore, using content instead
+                content: None, // Will be populated later
+            };
+            
+            // Add content field with proper schema reference if parameters are available
+            if route.params.len() > 0 && route.params[0] != "Void" {
+                // Create content map with application/json pointing to the parameter schema
+                let mut content = IndexMap::new();
+                content.insert("application/json".to_string(), OpenApiMediaType {
+                    schema: OpenApiSchemaRef::Reference {
+                        reference: format!("#/components/schemas/{}", clean_type_name(&route.params[0]))
+                    },
+                    example: None,
+                });
+                param.content = Some(content);
+            } else {
+                // If no schema available, still provide content with a generic object schema
+                let mut content = IndexMap::new();
+                content.insert("application/json".to_string(), OpenApiMediaType {
+                    schema: OpenApiSchemaRef::Inline(OpenApiSchema {
+                        schema_type: Some("object".to_string()),
+                        description: Some("JSON parameters for this request".to_string()),
+                        properties: None,
+                        required: None,
+                        all_of: None,
+                        items: None,
+                        enum_values: None,
+                        format: None,
+                        min_length: None,
+                        max_length: None,
+                        minimum: None,
+                        maximum: None,
+                        nullable: None,
+                        discriminator: None,
+                    }),
+                    example: None,
+                });
+                param.content = Some(content);
+            }
+            
+            vec![param]
+        },
+        _ => vec![],
+    };
+    
+    // Add team admin headers if this is for team endpoints
+    if add_team_headers {
+        // Add Dropbox-API-Select-User header
+        parameters.push(OpenApiParameter {
+            name: "Dropbox-API-Select-User".to_string(),
+            parameter_in: "header".to_string(),
+            description: "The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.".to_string(),
+            required: false,
+            schema: Some(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                description: Some("Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')".to_string()),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }),
+            content: None,
+        });
+        
+        // Add Dropbox-API-Select-Admin header
+        parameters.push(OpenApiParameter {
+            name: "Dropbox-API-Select-Admin".to_string(),
+            parameter_in: "header".to_string(),
+            description: "The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.".to_string(),
+            required: false,
+            schema: Some(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                description: Some("Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')".to_string()),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }),
+            content: None,
+        });
+    }
+    
+    // Prepare response headers for download-style endpoints
+    let response_headers = if style.as_deref() == Some("download") {
+        let mut headers = IndexMap::new();
+        
+        // Create header with content for Dropbox-API-Result
+        let mut header = OpenApiHeader {
+            description: "The JSON metadata response encoded as a string in this header.".to_string(),
+            schema: None, // We'll use content instead of schema
+            required: Some(true),
+            content: None, // Will be populated later
+        };
+        
+        // Add content with proper schema reference if result type is available
+        if route.params.len() >= 2 && route.params[1] != "Void" {
+            let result_type = &route.params[1];
+            let mut content = IndexMap::new();
+            content.insert("application/json".to_string(), OpenApiMediaType {
+                schema: OpenApiSchemaRef::Reference {
+                    reference: format!("#/components/schemas/{}", clean_type_name(result_type))
+                },
+                example: None,
+            });
+            header.content = Some(content);
+        } else {
+            // Generic content for unknown result types
+            let mut content = IndexMap::new();
+            content.insert("application/json".to_string(), OpenApiMediaType {
+                schema: OpenApiSchemaRef::Inline(OpenApiSchema {
+                    schema_type: Some("object".to_string()),
+                    description: Some("JSON metadata for the downloaded file".to_string()),
+                    properties: None,
+                    required: None,
+                    all_of: None,
+                    items: None,
+                    enum_values: None,
+                    format: None,
+                    min_length: None,
+                    max_length: None,
+                    minimum: None,
+                    maximum: None,
+                    nullable: None,
+                    discriminator: None,
+                }),
+                example: None,
+            });
+            header.content = Some(content);
+        }
+        
+        headers.insert("Dropbox-API-Result".to_string(), header);
+        Some(headers)
+    } else {
+        None
+    };
+    
+    let operation = OpenApiOperation {
+        summary: route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name)),
+        description: Some(description.to_string()),
+        operation_id: route.name.clone(),
+        security: vec![{
+            let mut security_req = IndexMap::new();
+            let scope = route.attrs.get("scope").unwrap_or(&"account_info.read".to_string()).clone();
+            security_req.insert("oauth2".to_string(), vec![scope]);
+            security_req
+        }],
+        // Add server based on host attribute
+        servers: match host.as_deref() {
+            Some("content") => Some(vec![OpenApiServer {
+                url: base_url.replace("api", "content"),
+                description: "Dropbox Content Server".to_string(),
+            }]),
+            Some("notify") => Some(vec![OpenApiServer {
+                url: base_url.replace("api", "notify"),
+                description: "Dropbox Notify Server".to_string(),
+            }]),
+            Some(host_value) => Some(vec![OpenApiServer {
+                url: base_url.replace("api", host_value),
+                description: format!("Dropbox {} Server", host_value),
+            }]),
+            None => None, // Use the default server
+        },
+        parameters: if parameters.is_empty() { None } else { Some(parameters) },
+        
+        // Add Stone-specific attributes as OpenAPI extensions
+        stone_auth: auth.clone(),
+        stone_style: style.clone(),
+        stone_preview: is_preview,
+        stone_allow_app_folder: allow_app_folder,
+        stone_select_admin_mode: select_admin_mode,
+        stone_cloud_doc_auth: cloud_doc_auth,
+        // Prepare request body based on style and parameters
+        request_body: match style.as_deref() {
+            // For upload-style endpoints, the request body is binary data
+            Some("upload") => Some(OpenApiRequestBody {
+                required: true,
+                content: {
+                    let mut content = IndexMap::new();
+                    // For uploads, the request body is the file content
+                    content.insert("application/octet-stream".to_string(), OpenApiMediaType {
+                        schema: OpenApiSchemaRef::Inline(OpenApiSchema {
+                            schema_type: Some("string".to_string()),
+                            properties: None,
+                            required: None,
+                            all_of: None,
+                            items: None,
+                            format: Some("binary".to_string()),
+                            enum_values: None,
+                            description: None,
+                            min_length: None,
+                            max_length: None,
+                            minimum: None,
+                            maximum: None,
+                            nullable: None,
+                            discriminator: None,
+                        }),
+                        example: None,
+                    });
+                    content
+                },
+            }),
+            // For download-style endpoints, there's no request body (parameters go in the Dropbox-API-Arg header)
+            Some("download") => None,
+            // For RPC-style endpoints, follow the standard JSON request pattern
+            _ => if route.params.len() > 1 && route.params[0] != "Void" {
+                Some(OpenApiRequestBody {
+                    required: true,
+                    content: {
+                        let mut content = IndexMap::new();
+                        content.insert("application/json".to_string(), OpenApiMediaType {
+                            schema: OpenApiSchemaRef::Reference {
+                                reference: format!("#/components/schemas/{}", clean_type_name(&route.params[0]))
+                            },
+                            example: None,
+                        });
+                        content
+                    },
+                })
+            } else {
+                None
+            },
+        },
+        responses: {
+            let mut responses = IndexMap::new();
+            
+            // Handle style-specific responses
+            match style.as_deref() {
+                // For download-style endpoints, the response body is binary data
+                Some("download") => {
+                    responses.insert("200".to_string(), OpenApiResponse {
+                        description: "Successful response with file content".to_string(),
+                        content: Some({
+                            let mut content = IndexMap::new();
+                            content.insert("application/octet-stream".to_string(), OpenApiMediaType {
+                                schema: OpenApiSchemaRef::Inline(OpenApiSchema {
+                                    schema_type: Some("string".to_string()),
+                                    properties: None,
+                                    required: None,
+                                    all_of: None,
+                                    items: None,
+                                    format: Some("binary".to_string()),
+                                    enum_values: None,
+                                    description: None,
+                                    min_length: None,
+                                    max_length: None,
+                                    minimum: None,
+                                    maximum: None,
+                                    nullable: None,
+                                    discriminator: None,
+                                }),
+                                example: None,
+                            });
+                            content
+                        }),
+                        headers: response_headers,
+                    });
+                },
+                // For RPC and upload-style endpoints, follow the standard JSON response pattern
+                _ => {
+                    if route.params.len() > 1 {
+                        responses.insert("200".to_string(), OpenApiResponse {
+                            description: "Successful response".to_string(),
+                            content: Some({
+                                let mut content = IndexMap::new();
+                                content.insert("application/json".to_string(), OpenApiMediaType {
+                                    schema: OpenApiSchemaRef::Reference {
+                                        reference: format!("#/components/schemas/{}", clean_type_name(&route.params[1]))
+                                    },
+                                    example: None,
+                                });
+                                content
+                            }),
+                            headers: None,
+                        });
+                    } else {
+                        responses.insert("200".to_string(), OpenApiResponse {
+                            description: "Successful response".to_string(),
+                            content: None,
+                            headers: None,
+                        });
+                    }
+                }
+            }
+            
+            // Add error responses
+            if route.params.len() > 2 && route.params[2] != "Void" {
+                responses.insert("400".to_string(), OpenApiResponse {
+                    description: "Error response".to_string(),
+                    content: Some({
+                        let mut content = IndexMap::new();
+                        content.insert("application/json".to_string(), OpenApiMediaType {
+                            schema: OpenApiSchemaRef::Reference {
+                                reference: format!("#/components/schemas/{}", clean_type_name(&route.params[2]))
+                            },
+                            example: None,
+                        });
+                        content
+                    }),
+                    headers: None,
+                });
+            }
+            
+            responses
+        },
+    };
+    
+    Ok(operation)
 }
 
 fn resolve_type_reference(type_str: &str, namespace_map: &HashMap<String, StoneNamespace>) -> String {
@@ -1875,4 +2062,268 @@ mod tests {
         assert_eq!(schema.required, Some(vec![".tag".to_string()]));
         assert!(schema.discriminator.is_some());
     }
+}
+
+fn merge_namespaces_to_openapi_individual(namespaces: &[StoneNamespace], namespace_map: &HashMap<String, StoneNamespace>, base_url: &str) -> Result<OpenApiSpec> {
+    let mut paths = IndexMap::new();
+    let mut schemas = IndexMap::new();
+    let mut all_scopes = IndexMap::new();
+    
+    // Process each namespace (only user endpoints)
+    for namespace in namespaces {
+        // Convert routes to paths
+        for route in &namespace.routes {
+            let path = format!("/{}/{}", namespace.name, route.name);
+            let mut path_methods = IndexMap::new();
+            
+            // Extract route attributes
+            let host = route.attrs.get("host").cloned();
+            let auth = route.attrs.get("auth").cloned();
+            let style = route.attrs.get("style").cloned();
+            let is_preview = route.attrs.get("is_preview").map(|v| v == "true");
+            let allow_app_folder = route.attrs.get("allow_app_folder_app").map(|v| v == "true");
+            let select_admin_mode = route.attrs.get("select_admin_mode").cloned();
+            let cloud_doc_auth = route.attrs.get("is_cloud_doc_auth").map(|v| v == "true");
+            
+            // Skip routes that require team authentication
+            if auth.as_deref() == Some("team") {
+                continue;
+            }
+            
+            // Prepare enhanced description based on style
+            let style_description = match style.as_deref() {
+                Some("rpc") => Some("RPC-style endpoint: Both request and response bodies are JSON.".to_string()),
+                Some("upload") => Some("Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.".to_string()),
+                Some("download") => Some("Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.".to_string()),
+                _ => None,
+            };
+            
+            // Build the full description including style information
+            let description = if let Some(style_desc) = style_description {
+                let base_desc = route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name));
+                format!("{} {}", base_desc, style_desc)
+            } else {
+                route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name))
+            };
+            
+            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, false)?;
+            
+            path_methods.insert("post".to_string(), operation);
+            paths.insert(path, path_methods);
+        }
+        
+        // Convert structs to schemas
+        for struct_def in &namespace.structs {
+            let schema = convert_struct_to_schema(struct_def, namespace_map)?;
+            schemas.insert(struct_def.name.clone(), schema);
+        }
+        
+        // Convert unions to schemas
+        for union_def in &namespace.unions {
+            let schema = convert_union_to_schema(union_def, namespace_map)?;
+            schemas.insert(union_def.name.clone(), schema);
+        }
+        
+        // Convert aliases to schemas
+        for (name, alias_type) in &namespace.aliases {
+            let schema = convert_alias_to_schema(alias_type, namespace_map)?;
+            schemas.insert(name.clone(), schema);
+        }
+    }
+    
+    // Collect all unique scopes from routes
+    for namespace in namespaces {
+        for route in &namespace.routes {
+            if route.attrs.get("auth").map(|s| s.as_str()) == Some("team") {
+                continue; // Skip team routes
+            }
+            let scope = route.attrs.get("scope").unwrap_or(&"account_info.read".to_string()).clone();
+            all_scopes.insert(scope.clone(), format!("Access to {} operations", scope.replace("_", " ")));
+        }
+    }
+    
+    let openapi_spec = OpenApiSpec {
+        openapi: "3.0.3".to_string(),
+        info: OpenApiInfo {
+            title: "Dropbox API - Individual".to_string(),
+            description: Some("Dropbox API v2 for individual Dropbox accounts. This specification contains only user endpoints that can be called from individual Dropbox accounts without team admin headers.".to_string()),
+            version: "2.0".to_string(),
+            contact: OpenApiContact {
+                name: "Dropbox API".to_string(),
+                url: "https://www.dropbox.com/developers".to_string(),
+            },
+        },
+        servers: vec![
+            OpenApiServer {
+                url: base_url.to_string(),
+                description: "Dropbox API v2 - API Server".to_string(),
+            },
+            OpenApiServer {
+                url: base_url.replace("api", "content"),
+                description: "Dropbox API v2 - Content Server".to_string(),
+            },
+            OpenApiServer {
+                url: base_url.replace("api", "notify"),
+                description: "Dropbox API v2 - Notify Server".to_string(),
+            }
+        ],
+        paths,
+        components: OpenApiComponents {
+            security_schemes: {
+                let mut schemes = IndexMap::new();
+                schemes.insert("oauth2".to_string(), OpenApiSecurityScheme {
+                    scheme_type: "oauth2".to_string(),
+                    flows: OpenApiOAuthFlows {
+                        authorization_code: OpenApiOAuthFlow {
+                            authorization_url: "https://www.dropbox.com/oauth2/authorize".to_string(),
+                            token_url: "https://api.dropboxapi.com/oauth2/token".to_string(),
+                            scopes: all_scopes,
+                        },
+                    },
+                });
+                schemes
+            },
+            schemas,
+        },
+    };
+    
+    Ok(openapi_spec)
+}
+
+fn merge_namespaces_to_openapi_team(namespaces: &[StoneNamespace], namespace_map: &HashMap<String, StoneNamespace>, base_url: &str) -> Result<OpenApiSpec> {
+    let mut paths = IndexMap::new();
+    let mut schemas = IndexMap::new();
+    let mut all_scopes = IndexMap::new();
+    
+    // Define business endpoint namespaces
+    let business_namespaces = [
+        "team", "team_common", "team_devices", "team_folders", "team_groups", 
+        "team_legal_holds", "team_linked_apps", "team_log", "team_log_generated",
+        "team_member_space_limits", "team_members", "team_namespaces", 
+        "team_policies", "team_reports", "team_secondary_mails", 
+        "team_sharing_allowlist"
+    ];
+    
+    // Process each namespace
+    for namespace in namespaces {
+        let is_business_namespace = business_namespaces.contains(&namespace.name.as_str());
+        
+        // Convert routes to paths
+        for route in &namespace.routes {
+            let path = format!("/{}/{}", namespace.name, route.name);
+            let mut path_methods = IndexMap::new();
+            
+            // Extract route attributes
+            let host = route.attrs.get("host").cloned();
+            let auth = route.attrs.get("auth").cloned();
+            let style = route.attrs.get("style").cloned();
+            let is_preview = route.attrs.get("is_preview").map(|v| v == "true");
+            let allow_app_folder = route.attrs.get("allow_app_folder_app").map(|v| v == "true");
+            let select_admin_mode = route.attrs.get("select_admin_mode").cloned();
+            let cloud_doc_auth = route.attrs.get("is_cloud_doc_auth").map(|v| v == "true");
+            
+            // Prepare enhanced description based on style
+            let style_description = match style.as_deref() {
+                Some("rpc") => Some("RPC-style endpoint: Both request and response bodies are JSON.".to_string()),
+                Some("upload") => Some("Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON.".to_string()),
+                Some("download") => Some("Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.".to_string()),
+                _ => None,
+            };
+            
+            // Build the full description including style information and team admin context
+            let description = if let Some(style_desc) = style_description {
+                let base_desc = route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name));
+                if is_business_namespace {
+                    format!("{} {} This is a business endpoint that requires team admin authentication.", base_desc, style_desc)
+                } else {
+                    format!("{} {} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.", base_desc, style_desc)
+                }
+            } else {
+                let base_desc = route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name));
+                if is_business_namespace {
+                    format!("{} This is a business endpoint that requires team admin authentication.", base_desc)
+                } else {
+                    format!("{} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.", base_desc)
+                }
+            };
+            
+            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, !is_business_namespace)?;
+            
+            path_methods.insert("post".to_string(), operation);
+            paths.insert(path, path_methods);
+        }
+        
+        // Convert structs to schemas
+        for struct_def in &namespace.structs {
+            let schema = convert_struct_to_schema(struct_def, namespace_map)?;
+            schemas.insert(struct_def.name.clone(), schema);
+        }
+        
+        // Convert unions to schemas
+        for union_def in &namespace.unions {
+            let schema = convert_union_to_schema(union_def, namespace_map)?;
+            schemas.insert(union_def.name.clone(), schema);
+        }
+        
+        // Convert aliases to schemas
+        for (name, alias_type) in &namespace.aliases {
+            let schema = convert_alias_to_schema(alias_type, namespace_map)?;
+            schemas.insert(name.clone(), schema);
+        }
+    }
+    
+    // Collect all unique scopes from routes
+    for namespace in namespaces {
+        for route in &namespace.routes {
+            let scope = route.attrs.get("scope").unwrap_or(&"account_info.read".to_string()).clone();
+            all_scopes.insert(scope.clone(), format!("Access to {} operations", scope.replace("_", " ")));
+        }
+    }
+    
+    let openapi_spec = OpenApiSpec {
+        openapi: "3.0.3".to_string(),
+        info: OpenApiInfo {
+            title: "Dropbox API - Team".to_string(),
+            description: Some("Dropbox API v2 for team admins. This specification contains both user endpoints (which can be called with Dropbox-API-Select-User or Dropbox-API-Select-Admin headers) and business endpoints (which require team admin authentication).".to_string()),
+            version: "2.0".to_string(),
+            contact: OpenApiContact {
+                name: "Dropbox API".to_string(),
+                url: "https://www.dropbox.com/developers".to_string(),
+            },
+        },
+        servers: vec![
+            OpenApiServer {
+                url: base_url.to_string(),
+                description: "Dropbox API v2 - API Server".to_string(),
+            },
+            OpenApiServer {
+                url: base_url.replace("api", "content"),
+                description: "Dropbox API v2 - Content Server".to_string(),
+            },
+            OpenApiServer {
+                url: base_url.replace("api", "notify"),
+                description: "Dropbox API v2 - Notify Server".to_string(),
+            }
+        ],
+        paths,
+        components: OpenApiComponents {
+            security_schemes: {
+                let mut schemes = IndexMap::new();
+                schemes.insert("oauth2".to_string(), OpenApiSecurityScheme {
+                    scheme_type: "oauth2".to_string(),
+                    flows: OpenApiOAuthFlows {
+                        authorization_code: OpenApiOAuthFlow {
+                            authorization_url: "https://www.dropbox.com/oauth2/authorize".to_string(),
+                            token_url: "https://api.dropboxapi.com/oauth2/token".to_string(),
+                            scopes: all_scopes,
+                        },
+                    },
+                });
+                schemes
+            },
+            schemas,
+        },
+    };
+    
+    Ok(openapi_spec)
 }
