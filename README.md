@@ -102,20 +102,21 @@ The tool generates OpenAPI 3.0.3 specifications from Dropbox's Stone DSL definit
 ### Dropbox API - Complete (Default)
 The standard complete specification including all endpoints.
 
-### Dropbox API - Individual 
+### Dropbox API - Individual (`dropbox-api-individual.yaml`)
 Tailored for individual Dropbox accounts:
-- **User endpoints only** (no business/team endpoints)
-- **Standard OAuth2 authentication**
-- **Smaller file size** (~377KB)
+- **145 endpoints** (user endpoints only)
+- **377KB file size** / 12,313 lines
+- **Standard OAuth2 authentication** (no team headers)
+- **Endpoints**: `/files/*`, `/users/*`, `/sharing/*`, `/paper/*`, etc.
 - **Use case**: Personal applications, individual developers
 
-### Dropbox API - Team
+### Dropbox API - Team (`dropbox-api-team.yaml`)
 Designed for team administrators:
-- **All endpoints** (user + business)
+- **243 endpoints** (145 user + 98 team endpoints)
+- **1.2MB file size** / 34,650 lines
 - **Team admin headers** (`Dropbox-API-Select-User`, `Dropbox-API-Select-Admin`)
-- **Complete functionality** for team management
-- **Larger file size** (~1.2MB)
-- **Use case**: Business applications, team management tools
+- **Endpoints**: All user endpoints + `/team/*` business endpoints
+- **Use case**: Enterprise applications, team administration tools
 
 ### Statistics (Dropbox API Complete)
 - **API Endpoints:** 243 routes

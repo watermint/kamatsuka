@@ -149,3 +149,108 @@ Use `dropbox-api-team.yaml` when building applications that need to:
   - `dropbox-api-team.yaml` - For team admins
 
 This enhancement provides a more targeted and user-friendly approach to Dropbox API integration for different user types while maintaining full compatibility with the existing Stone DSL specifications.
+
+## Results
+
+The enhancement successfully generated two distinct OpenAPI specifications with the following outcomes:
+
+### dropbox-api-individual.yaml
+
+**File Statistics:**
+- **File Size**: 377KB
+- **Line Count**: 12,313 lines
+- **Endpoint Count**: 145 API endpoints
+- **Target Audience**: Individual Dropbox users and personal applications
+
+**Key Features:**
+- ✅ **User endpoints only** (files, users, sharing, file_properties, file_requests, paper, check, etc.)
+- ✅ **Standard OAuth2 authentication** without team admin complexity
+- ✅ **No team admin headers** (Dropbox-API-Select-User/Admin)
+- ✅ **Smaller footprint** for lightweight integrations
+- ❌ **No business/team endpoints** (/team/* paths excluded)
+
+**Example Endpoints Included:**
+```
+/check/user
+/check/app
+/file_properties/properties/add
+/files/upload
+/files/download
+/users/get_current_account
+/sharing/create_shared_link
+/paper/docs/create
+```
+
+**Authentication:**
+- Standard OAuth2 Bearer token
+- No special headers required
+- Suitable for individual user applications
+
+---
+
+### dropbox-api-team.yaml
+
+**File Statistics:**
+- **File Size**: 1.2MB
+- **Line Count**: 34,650 lines
+- **Endpoint Count**: 243 API endpoints (145 user + 98 team endpoints)
+- **Target Audience**: Team administrators and enterprise applications
+
+**Key Features:**
+- ✅ **All endpoints** (user + business/team endpoints)
+- ✅ **Team admin headers** for user impersonation and admin operations
+- ✅ **Complete team management** functionality
+- ✅ **User endpoint flexibility** with admin context switching
+- ✅ **Enterprise-grade** capabilities
+
+**Example Team Endpoints Included:**
+```
+/team/get_info
+/team/token/get_authenticated_admin
+/team/features/get_values
+/team/devices/list_member_devices
+/team/members/add
+/team/groups/create
+/team/legal_holds/create_policy
+/team/log/get_events
+```
+
+**Team Admin Headers:**
+```yaml
+- name: Dropbox-API-Select-User
+  in: header
+  description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
+  required: false
+  schema:
+    type: string
+    description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
+
+- name: Dropbox-API-Select-Admin
+  in: header
+  description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
+  required: false
+  schema:
+    type: string
+    description: Team admin ID for elevated privileges
+```
+
+**Authentication:**
+- OAuth2 Bearer token with team admin scope
+- Optional team admin headers for context switching
+- Supports both member and admin operation modes
+
+---
+
+## Comparison Summary
+
+| Feature | Individual | Team |
+|---------|------------|------|
+| **File Size** | 377KB | 1.2MB |
+| **Endpoints** | 145 | 243 |
+| **Team Endpoints** | ❌ None | ✅ 98 endpoints |
+| **Team Headers** | ❌ No | ✅ Yes |
+| **Use Case** | Personal apps | Enterprise/Team management |
+| **Complexity** | Low | High |
+| **Authentication** | Standard OAuth2 | OAuth2 + Team headers |
+
+Both specifications are fully functional and ready for use in their respective contexts.
