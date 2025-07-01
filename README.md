@@ -61,6 +61,16 @@ cargo run -- convert --stone stone/dropbox-api-spec --output dropbox-api-complet
 cargo run -- convert --stone stone/dropbox-api-spec --output api.yaml --base-url https://api.example.com/v2
 ```
 
+**Individual Dropbox Accounts (User Endpoints Only):**
+```bash
+cargo run -- convert-individual --stone stone/dropbox-api-spec --output dropbox-api-individual.yaml
+```
+
+**Team Admins (User + Business Endpoints with Team Headers):**
+```bash
+cargo run -- convert-team --stone stone/dropbox-api-spec --output dropbox-api-team.yaml
+```
+
 ### Validate OpenAPI Specification
 
 **Basic Validation:**
@@ -85,9 +95,28 @@ cargo run -- compare --stone path/to/file.stone --openapi path/to/api.yaml --ver
 cargo run -- verify-stone --path stone/dropbox-api-spec --verbose
 ```
 
-## Generated OpenAPI Specification
+## Generated OpenAPI Specifications
 
-The tool generates a complete OpenAPI 3.0.3 specification from Dropbox's Stone DSL definitions:
+The tool generates OpenAPI 3.0.3 specifications from Dropbox's Stone DSL definitions. Three different specifications can be generated:
+
+### Dropbox API - Complete (Default)
+The standard complete specification including all endpoints.
+
+### Dropbox API - Individual (`dropbox-api-individual.yaml`)
+Tailored for individual Dropbox accounts:
+- **145 endpoints** (user endpoints only)
+- **377KB file size** / 12,313 lines
+- **Standard OAuth2 authentication** (no team headers)
+- **Endpoints**: `/files/*`, `/users/*`, `/sharing/*`, `/paper/*`, etc.
+- **Use case**: Personal applications, individual developers
+
+### Dropbox API - Team (`dropbox-api-team.yaml`)
+Designed for team administrators:
+- **243 endpoints** (145 user + 98 team endpoints)
+- **1.2MB file size** / 34,650 lines
+- **Team admin headers** (`Dropbox-API-Select-User`, `Dropbox-API-Select-Admin`)
+- **Endpoints**: All user endpoints + `/team/*` business endpoints
+- **Use case**: Enterprise applications, team administration tools
 
 ### Statistics (Dropbox API Complete)
 - **API Endpoints:** 243 routes

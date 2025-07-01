@@ -92,6 +92,44 @@ enum Commands {
         verbose: bool,
     },
     
+    /// Convert Stone DSL to OpenAPI specification for individual Dropbox accounts
+    ConvertIndividual {
+        /// Path to Stone DSL directory containing .stone files
+        #[arg(short, long)]
+        stone: String,
+        
+        /// Output OpenAPI YAML file path
+        #[arg(short, long)]
+        output: String,
+        
+        /// API base URL
+        #[arg(long, default_value = "https://api.dropboxapi.com/2")]
+        base_url: String,
+        
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+    
+    /// Convert Stone DSL to OpenAPI specification for team admins (includes user endpoints with team headers and business endpoints)
+    ConvertTeam {
+        /// Path to Stone DSL directory containing .stone files
+        #[arg(short, long)]
+        stone: String,
+        
+        /// Output OpenAPI YAML file path
+        #[arg(short, long)]
+        output: String,
+        
+        /// API base URL
+        #[arg(long, default_value = "https://api.dropboxapi.com/2")]
+        base_url: String,
+        
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+    
     /// Verify Stone DSL definitions syntax
     VerifyStone {
         /// Path to Stone DSL file or directory
@@ -144,6 +182,12 @@ fn main() -> Result<()> {
         }
         Commands::Convert { stone, output, base_url, verbose } => {
             convert_command(stone, output, base_url, *verbose)
+        }
+        Commands::ConvertIndividual { stone, output, base_url, verbose } => {
+            convert_individual_command(stone, output, base_url, *verbose)
+        }
+        Commands::ConvertTeam { stone, output, base_url, verbose } => {
+            convert_team_command(stone, output, base_url, *verbose)
         }
         Commands::Modeller { openapi, output, verbose } => {
             modeller_command(openapi, output, *verbose)
@@ -568,6 +612,104 @@ fn validate_openapi_command(openapi_path: &str, verbose: bool) -> Result<()> {
     }
     
     println!("\n{}", "✅ OpenAPI specification is valid!".green().bold());
+    
+    Ok(())
+}
+
+fn convert_individual_command(stone_path: &str, output_path: &str, base_url: &str, verbose: bool) -> Result<()> {
+    println!("{}", "Stone DSL to OpenAPI Conversion for Individual Dropbox Accounts".green().bold());
+    println!("Input: {}", stone_path.cyan());
+    println!("Output: {}", output_path.cyan());
+    
+    if verbose {
+        let path = Path::new(stone_path);
+        if path.is_dir() {
+            println!("Mode: Directory (will merge all .stone files)");
+        } else {
+            println!("Mode: Single file");
+        }
+    }
+    
+    let path = Path::new(stone_path);
+    let openapi_spec = converter::convert_stone_to_openapi_individual(stone_path, base_url)?;
+    
+    info!("Conversion successful, writing output to: {}", output_path);
+    
+    if verbose {
+        if path.is_dir() {
+            // Count stone files
+            let stone_count = fs::read_dir(stone_path)?
+                .filter_map(Result::ok)
+                .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "stone"))
+                .count();
+            println!("✓ Successfully parsed {} Stone files", stone_count);
+        } else {
+            println!("✓ Successfully parsed Stone DSL");
+        }
+        println!("✓ Generated OpenAPI specification");
+    }
+    
+    // Write output
+    let output_yaml = serde_yaml::to_string(&openapi_spec)
+        .with_context(|| "Failed to serialize OpenAPI spec")?;
+    
+    fs::write(output_path, output_yaml)
+        .with_context(|| format!("Failed to write output file: {}", output_path))?;
+    
+    if verbose {
+        println!("✓ Written to {}", output_path.green());
+    }
+    
+    println!("{}", "✓ Conversion completed successfully!".green().bold());
+    
+    Ok(())
+}
+
+fn convert_team_command(stone_path: &str, output_path: &str, base_url: &str, verbose: bool) -> Result<()> {
+    println!("{}", "Stone DSL to OpenAPI Conversion for Team Admins".green().bold());
+    println!("Input: {}", stone_path.cyan());
+    println!("Output: {}", output_path.cyan());
+    
+    if verbose {
+        let path = Path::new(stone_path);
+        if path.is_dir() {
+            println!("Mode: Directory (will merge all .stone files)");
+        } else {
+            println!("Mode: Single file");
+        }
+    }
+    
+    let path = Path::new(stone_path);
+    let openapi_spec = converter::convert_stone_to_openapi_team(stone_path, base_url)?;
+    
+    info!("Conversion successful, writing output to: {}", output_path);
+    
+    if verbose {
+        if path.is_dir() {
+            // Count stone files
+            let stone_count = fs::read_dir(stone_path)?
+                .filter_map(Result::ok)
+                .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "stone"))
+                .count();
+            println!("✓ Successfully parsed {} Stone files", stone_count);
+        } else {
+            println!("✓ Successfully parsed Stone DSL");
+        }
+        println!("✓ Generated OpenAPI specification");
+    }
+    
+    // Write output
+    let output_yaml = serde_yaml::to_string(&openapi_spec)
+        .with_context(|| "Failed to serialize OpenAPI spec")?;
+    
+    fs::write(output_path, output_yaml)
+        .with_context(|| format!("Failed to write output file: {}", output_path))?;
+    
+    if verbose {
+        println!("✓ Written to {}", output_path.green());
+    }
+    
+    println!("{}", "✓ Conversion completed successfully!".green().bold());
     
     Ok(())
 }
