@@ -1,7 +1,14 @@
 openapi: 3.0.3
 info:
   title: Dropbox API - Team
-  description: Dropbox API v2 for team admins. This specification contains both user endpoints (which can be called with Dropbox-API-Select-User or Dropbox-API-Select-Admin headers) and business endpoints (which require team admin authentication).
+  description: |-
+    Dropbox API v2 for team admins. This specification contains both user endpoints and business endpoints.
+    
+    User endpoints support two admin authentication modes:
+    - **Whole Team mode**: Endpoints support both Dropbox-API-Select-User and Dropbox-API-Select-Admin headers. When using Dropbox-API-Select-Admin, admins can access team folders, team spaces, and team members' home namespaces.
+    - **Team Admin mode**: Endpoints only support Dropbox-API-Select-Admin header. Admins can access team folders and team spaces but not team members' home namespaces.
+    
+    Business endpoints require team admin authentication without additional headers.
   version: '2.0'
   contact:
     name: Dropbox API
@@ -1693,7 +1700,7 @@ paths:
             are changes available or a timeout occurs. This endpoint is useful mostly
             for client-side apps. If you're looking for server-side notifications,
             check out our
-            :link:`webhooks documentation https://www.dropbox.com/developers/reference/webhooks`. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            :link:`webhooks documentation https://www.dropbox.com/developers/reference/webhooks`. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-auth: noauth
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
@@ -1786,7 +1793,7 @@ paths:
             Note: :type:`auth.RateLimitError` may be returned if multiple :route:`list_folder` or
             :route:`list_folder/continue` calls with same parameters are made simultaneously by same
             API app for same user. If your app implements retry logic, please hold off the retry until
-            the previous request finishes. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            the previous request finishes. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-auth: app, user
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
@@ -1837,7 +1844,7 @@ paths:
       description: |-
         Once a cursor has been retrieved from :route:`list_folder`, use this to paginate through all
             files and retrieve updates to the folder, following the same rules as documented for
-            :route:`list_folder`. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            :route:`list_folder`. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-auth: app, user
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
@@ -1890,7 +1897,7 @@ paths:
         A way to quickly get a cursor for the folder's state. Unlike :route:`list_folder`,
             :route:`list_folder/get_latest_cursor` doesn't return any entries. This endpoint is for app
             which only needs to know about new files and modifications and doesn't need to know about
-            files that already exist in Dropbox. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            files that already exist in Dropbox. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
   /files/download:
@@ -1948,7 +1955,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: 'Download a file from a user''s Dropbox. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.'
+      description: 'Download a file from a user''s Dropbox. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.'
       x-stone-style: download
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
@@ -2081,7 +2088,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Export a file from a user's Dropbox. This route only supports exporting files that cannot be downloaded directly
-             and whose :field:`ExportResult.file_metadata` has :field:`ExportInfo.export_as` populated. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+             and whose :field:`ExportResult.file_metadata` has :field:`ExportInfo.export_as` populated. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-style: download
       x-stone-preview: true
       x-stone-allow-app-folder: true
@@ -2113,13 +2120,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UploadSessionStartBatchResult'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2133,7 +2133,7 @@ paths:
             Calls to this endpoint will count as data transport calls for any Dropbox
             Business teams with a limit on the number of data transport calls allowed
             per month. For more information, see the :link:`Data transport limit page
-            https://www.dropbox.com/developers/reference/data-transport-limit`. RPC-style endpoint: Both request and response bodies are JSON. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            https://www.dropbox.com/developers/reference/data-transport-limit`. RPC-style endpoint: Both request and response bodies are JSON. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-style: rpc
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
@@ -2210,13 +2210,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadSessionStartArg'
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2258,7 +2251,7 @@ paths:
             data with :route:`upload_session/start` or :route:`upload_session/finish` call, only with
             :route:`upload_session/append:2` call. Also data uploaded in :route:`upload_session/append:2`
             call must be multiple of 4194304 bytes (except for last :route:`upload_session/append:2` with
-            :field:`UploadSessionStartArg.close` to :val:`true`, that may contain any remaining data). Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            :field:`UploadSessionStartArg.close` to :val:`true`, that may contain any remaining data). Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-style: upload
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
@@ -2309,13 +2302,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadSessionCursor'
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2331,7 +2317,7 @@ paths:
 
             Calls to this endpoint will count as data transport calls for any Dropbox
             Business teams with a limit on the number of data transport calls allowed
-            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-style: upload
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
@@ -2383,13 +2369,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadSessionFinishArg'
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2406,7 +2385,7 @@ paths:
 
             Calls to this endpoint will count as data transport calls for any Dropbox
             Business teams with a limit on the number of data transport calls allowed
-            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-style: upload
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
@@ -2454,13 +2433,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadArg'
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2473,7 +2445,7 @@ paths:
             behavior of this alpha endpoint is unstable and subject to change.
 
             Do not use this to upload a file larger than 150 MB. Instead, create an
-            upload session with :route:`upload_session/start`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            upload session with :route:`upload_session/start`. Upload-style endpoint: Request has JSON parameters in Dropbox-API-Arg header and binary data in body. Response body is JSON. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-style: upload
       x-stone-preview: true
       x-stone-allow-app-folder: true
@@ -2515,13 +2487,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UploadSessionFinishBatchResult'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2546,7 +2511,7 @@ paths:
 
             Calls to this endpoint will count as data transport calls for any Dropbox
             Business teams with a limit on the number of data transport calls allowed
-            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            per month. For more information, see the :link:`Data transport limit page https://www.dropbox.com/developers/reference/data-transport-limit`. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/upload_session/finish_batch/check:
@@ -2578,13 +2543,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2594,7 +2552,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Returns the status of an asynchronous job for :route:`upload_session/finish_batch`. If
-            success, it returns list of result for each entry. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            success, it returns list of result for each entry. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/search:2:
@@ -2631,13 +2589,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/SearchError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2652,7 +2603,7 @@ paths:
             retrieve a maximum of 10,000 matches.
 
             Recent changes may not immediately be reflected in search results due to a short delay in indexing.
-            Duplicate results may be returned across pages. Some results may not be returned. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            Duplicate results may be returned across pages. Some results may not be returned. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
   /files/search/continue:2:
     post:
@@ -2688,13 +2639,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/SearchError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2709,7 +2653,7 @@ paths:
             retrieve a maximum of 10,000 matches.
 
             Recent changes may not immediately be reflected in search results due to a short delay in indexing.
-            Duplicate results may be returned across pages. Some results may not be returned. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            Duplicate results may be returned across pages. Some results may not be returned. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
   /files/create_folder:2:
     post:
@@ -2738,13 +2682,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateFolderError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2752,7 +2689,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Create a folder at a given path. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Create a folder at a given path. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/create_folder_batch:
@@ -2783,13 +2720,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateFolderBatchLaunch'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2804,7 +2734,7 @@ paths:
             the create folder batch asynchronously. Otherwise, creates the folders and returns the result
             synchronously for smaller inputs. You can force asynchronous behaviour by using the
             :field:`CreateFolderBatchArg.force_async` flag.  Use :route:`create_folder_batch/check` to check
-            the job status. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            the job status. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/create_folder_batch/check:
@@ -2836,13 +2766,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2852,7 +2775,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Returns the status of an asynchronous job for :route:`create_folder_batch`. If
-            success, it returns list of result for each entry. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            success, it returns list of result for each entry. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/delete:2:
@@ -2889,13 +2812,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeleteError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2910,7 +2826,7 @@ paths:
 
             A successful response indicates that the file or folder was deleted. The returned metadata will
             be the corresponding :type:`FileMetadata` or :type:`FolderMetadata` for the item at time of
-            deletion, and not a :type:`DeletedMetadata` object. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            deletion, and not a :type:`DeletedMetadata` object. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/delete_batch:
@@ -2939,13 +2855,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeleteBatchLaunch'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -2958,7 +2867,7 @@ paths:
 
             This route is asynchronous, which returns a job ID immediately and runs
             the delete batch asynchronously. Use :route:`delete_batch/check` to check
-            the job status. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            the job status. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/delete_batch/check:
@@ -2990,13 +2899,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3006,7 +2908,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Returns the status of an asynchronous job for :route:`delete_batch`. If
-            success, it returns list of result for each entry. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            success, it returns list of result for each entry. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/permanently_delete:
@@ -3044,13 +2946,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeleteError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3066,7 +2961,7 @@ paths:
             It is possible for this route to successfully delete, then fail to permanently
             delete.
 
-            Note: This endpoint is only available for Dropbox Business apps. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            Note: This endpoint is only available for Dropbox Business apps. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/copy:2:
@@ -3099,13 +2994,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelocationError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3116,7 +3004,7 @@ paths:
       description: |-
         Copy a file or folder to a different location in the user's Dropbox.
 
-            If the source path is a folder all its contents will be copied. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            If the source path is a folder all its contents will be copied. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/copy_batch:2:
@@ -3145,13 +3033,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelocationBatchLaunch'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3164,7 +3045,7 @@ paths:
             user's Dropbox.
 
             This route will return job ID immediately and do the async copy job in
-            background. Please use :route:`copy_batch/check:1` to check the job status. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            background. Please use :route:`copy_batch/check:1` to check the job status. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/copy_batch/check:2:
@@ -3196,13 +3077,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3212,7 +3086,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Returns the status of an asynchronous job for :route:`copy_batch:1`. If
-            success, it returns list of results for each entry. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            success, it returns list of results for each entry. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/move:2:
@@ -3245,13 +3119,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelocationError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3262,7 +3129,7 @@ paths:
       description: |-
         Move a file or folder to a different location in the user's Dropbox.
 
-            If the source path is a folder all its contents will be moved. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            If the source path is a folder all its contents will be moved. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/move_batch:2:
@@ -3291,13 +3158,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelocationBatchLaunch'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3310,7 +3170,7 @@ paths:
             user's Dropbox.
 
             This route will return job ID immediately and do the async moving job in
-            background. Please use :route:`move_batch/check:1` to check the job status. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            background. Please use :route:`move_batch/check:1` to check the job status. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/move_batch/check:2:
@@ -3342,13 +3202,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3358,7 +3211,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Returns the status of an asynchronous job for :route:`move_batch:1`. If
-            success, it returns list of results for each entry. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            success, it returns list of results for each entry. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/get_thumbnail:
@@ -3426,7 +3279,7 @@ paths:
 
             This method currently supports files with the following file extensions:
             jpg, jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB
-            in size won't be converted to a thumbnail. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            in size won't be converted to a thumbnail. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-style: download
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
@@ -3484,7 +3337,7 @@ paths:
 
             This method currently supports files with the following file extensions:
             jpg, jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB
-            in size won't be converted to a thumbnail. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            in size won't be converted to a thumbnail. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
   /files/get_thumbnail:2:
@@ -3552,7 +3405,7 @@ paths:
 
             This method currently supports files with the following file extensions:
             jpg, jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB
-            in size won't be converted to a thumbnail. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            in size won't be converted to a thumbnail. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-auth: app, user
       x-stone-style: download
       x-stone-allow-app-folder: true
@@ -3628,7 +3481,7 @@ paths:
 
             HTML previews are generated for files with the following extensions: .csv, .ods, .xls, .xlsm, .gsheet, .xlsx.
 
-            Other formats will return an unsupported extension error. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            Other formats will return an unsupported extension error. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-style: download
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
@@ -3691,7 +3544,7 @@ paths:
             file path as the latest file entry are
             returned. If revisions with the same file id are desired, then mode must be set to
             :field:`ListRevisionsMode.id`. The :field:`ListRevisionsMode.id` mode is useful to retrieve
-            revisions for a given file across moves or renames. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            revisions for a given file across moves or renames. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
   /files/restore:
@@ -3721,13 +3574,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RestoreError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -3735,7 +3581,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Restore a specific revision of a file to the given path. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Restore a specific revision of a file to the given path. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /files/get_temporary_link:
@@ -4410,7 +4256,7 @@ paths:
             or, if a business account, a team admin. A successful response indicates that the file has
             been unlocked. Returns a list of the unlocked file paths and their metadata after
             this operation.
-             This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+             This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-select-admin-mode: whole_team
   /files/get_file_lock_batch:
     post:
@@ -5793,13 +5639,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateSharedLinkError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -5815,7 +5654,7 @@ paths:
             Previously, it was technically possible to break a shared link by moving or
             renaming the corresponding file or folder. In the future, this will no
             longer be the case, so your app shouldn't rely on this behavior. Instead, if
-            your app needs to revoke a shared link, use :route:`revoke_shared_link`. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            your app needs to revoke a shared link, use :route:`revoke_shared_link`. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /sharing/revoke_shared_link:
@@ -5851,13 +5690,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RevokeSharedLinkError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -5871,7 +5703,7 @@ paths:
             Note that even after revoking a shared link to a file, the file may be accessible if there are
             shared links leading to any of the file parent folders. To list all shared links that enable
             access to a specific file, you can use the :route:`list_shared_links` with the file as the
-            :field:`ListSharedLinksArg.path` argument. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            :field:`ListSharedLinksArg.path` argument. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
   /sharing/get_shared_link_file:
@@ -5959,13 +5791,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/AddFileMemberError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -5973,7 +5798,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Adds specified members to a file. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Adds specified members to a file. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/update_file_member:
     post:
@@ -6002,13 +5827,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/FileMemberActionError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6016,7 +5834,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Changes a member's access on a shared file. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Changes a member's access on a shared file. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/get_file_metadata:
     post:
@@ -6045,13 +5863,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/GetFileMetadataError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6059,7 +5870,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Returns shared file metadata. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Returns shared file metadata. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/get_file_metadata/batch:
     post:
@@ -6132,13 +5943,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ListFileMembersError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6148,7 +5952,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Use to obtain the members who have been invited to a file, both inherited
-            and uninherited members. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            and uninherited members. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/list_file_members/batch:
     post:
@@ -6285,13 +6089,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/SharingUserError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6303,7 +6100,7 @@ paths:
         Returns a list of all files shared with current user.
 
              Does not include files the user has received via shared folders, and does
-             not include unclaimed invitations. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+             not include unclaimed invitations. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/list_received_files/continue:
     post:
@@ -6374,13 +6171,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RemoveFileMemberError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6388,7 +6178,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Removes a specified member from the file. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Removes a specified member from the file. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/relinquish_file_membership:
     post:
@@ -6420,13 +6210,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelinquishFileMembershipError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6437,7 +6220,7 @@ paths:
       description: |-
         The current user relinquishes their membership in the designated file.
             Note that the current user may still have inherited access to this file
-            through the parent folder. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            through the parent folder. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/unshare_file:
     post:
@@ -6466,13 +6249,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnshareFileError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6480,7 +6256,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Remove all members from this file. Does not remove inherited members. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Remove all members from this file. Does not remove inherited members. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/list_folders:
     post:
@@ -6691,7 +6467,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Returns shared folder metadata by its folder ID. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Returns shared folder metadata by its folder ID. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-select-admin-mode: whole_team
   /sharing/list_folder_members:
     post:
@@ -6734,7 +6510,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Returns shared folder membership by its folder ID. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Returns shared folder membership by its folder ID. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-select-admin-mode: whole_team
   /sharing/list_folder_members/continue:
     post:
@@ -6781,7 +6557,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Once a cursor has been retrieved from :route:`list_folder_members`, use this to paginate
-            through all shared folder members. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            through all shared folder members. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-select-admin-mode: whole_team
   /sharing/share_folder:
     post:
@@ -6819,13 +6595,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ShareFolderError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6842,7 +6611,7 @@ paths:
 
             If a :field:`ShareFolderLaunch.async_job_id` is returned, you'll need to
             call :route:`check_share_job_status` until the action completes to get the
-            metadata for the folder. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            metadata for the folder. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/check_share_job_status:
     post:
@@ -6871,13 +6640,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6885,7 +6647,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Returns the status of an asynchronous job for sharing a folder. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Returns the status of an asynchronous job for sharing a folder. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/check_job_status:
     post:
@@ -6914,13 +6676,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6928,7 +6683,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Returns the status of an asynchronous job. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Returns the status of an asynchronous job. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/unshare_folder:
     post:
@@ -6961,13 +6716,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnshareFolderError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -6979,7 +6727,7 @@ paths:
         Allows a shared folder owner to unshare the folder.
 
             You'll need to call :route:`check_job_status` to determine if the action has
-            completed successfully. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            completed successfully. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/transfer_folder:
     post:
@@ -7011,13 +6759,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransferFolderError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -7028,7 +6769,7 @@ paths:
       description: |-
         Transfer ownership of a shared folder to a member of the shared folder.
 
-            User must have :field:`AccessLevel.owner` access to the shared folder to perform a transfer. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            User must have :field:`AccessLevel.owner` access to the shared folder to perform a transfer. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/update_folder_policy:
     post:
@@ -7060,13 +6801,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UpdateFolderPolicyError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -7077,7 +6811,7 @@ paths:
       description: |-
         Update the sharing policies for a shared folder.
 
-            User must have :field:`AccessLevel.owner` access to the shared folder to update its policies. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            User must have :field:`AccessLevel.owner` access to the shared folder to update its policies. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/add_folder_member:
     post:
@@ -7111,13 +6845,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/AddFolderMemberError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -7130,7 +6857,7 @@ paths:
             folder to add another member.
 
             For the new member to get access to all the functionality for this folder,
-            you will need to call :route:`mount_folder` on their behalf. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            you will need to call :route:`mount_folder` on their behalf. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/remove_folder_member:
     post:
@@ -7161,13 +6888,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/RemoveFolderMemberError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -7177,7 +6897,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Allows an owner or editor (if the ACL update policy allows) of a shared
-            folder to remove another member. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            folder to remove another member. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/check_remove_member_job_status:
     post:
@@ -7206,13 +6926,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -7220,7 +6933,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Returns the status of an asynchronous job for sharing a folder. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Returns the status of an asynchronous job for sharing a folder. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/update_folder_member:
     post:
@@ -7251,13 +6964,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UpdateFolderMemberError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -7267,7 +6973,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         Allows an owner or editor of a shared folder to update another member's
-            permissions. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            permissions. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/mount_folder:
     post:
@@ -7348,13 +7054,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnmountFolderError'
       parameters:
-      - name: Dropbox-API-Select-User
-        in: header
-        description: The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.
-        required: false
-        schema:
-          type: string
-          description: Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       - name: Dropbox-API-Select-Admin
         in: header
         description: The team admin ID to act as. Used by team admins to perform operations with admin privileges, enabling access to team-owned content.
@@ -7364,7 +7063,7 @@ paths:
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
       description: |-
         The current user unmounts the designated folder. They can re-mount the
-            folder at a later time using :route:`mount_folder`. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+            folder at a later time using :route:`mount_folder`. This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.
       x-stone-select-admin-mode: team_admin
   /sharing/relinquish_folder_membership:
     post:
@@ -10766,7 +10465,7 @@ paths:
         schema:
           type: string
           description: Team admin member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')
-      description: Get information about the current user's account. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.
+      description: Get information about the current user's account. This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: whole_team
   /users/get_space_usage:
