@@ -917,6 +917,12 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
         }
     }
     
+    // Add Path-Root header schemas
+    schemas.insert("PathRoot".to_string(), create_path_root_schema());
+    schemas.insert("PathRootHome".to_string(), create_path_root_home_schema());
+    schemas.insert("PathRootRoot".to_string(), create_path_root_root_schema());
+    schemas.insert("PathRootNamespace".to_string(), create_path_root_namespace_schema());
+    
     // Collect all unique scopes from routes
     for namespace in namespaces {
         for route in &namespace.routes {
@@ -1373,22 +1379,105 @@ fn should_add_path_root_header(route: &StoneRoute, namespace: &str) -> bool {
 }
 
 fn create_path_root_parameter() -> OpenApiParameter {
-    // Create the Dropbox-API-Path-Root parameter with proper schema definition
-    let mut content = IndexMap::new();
-    
-    // Create the oneOf schema for the three path root modes
-    let home_schema = OpenApiSchema {
+    // Create the Dropbox-API-Path-Root parameter that references the schema in components
+    OpenApiParameter {
+        name: "Dropbox-API-Path-Root".to_string(),
+        parameter_in: "header".to_string(),
+        description: "Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.\n\nSupports three modes:\n- Home mode: '{\"tag\": \"home\"}' - roots to user's home namespace\n- Root mode: '{\"tag\": \"root\", \"root\": \"namespace_id\"}' - validates and roots to specific root namespace\n- Namespace mode: '{\"tag\": \"namespace_id\", \"namespace_id\": \"namespace_id\"}' - roots to any accessible namespace\n\nEssential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.".to_string(),
+        required: false,
+        schema: None,
+        content: Some({
+            let mut content = IndexMap::new();
+            content.insert("application/json".to_string(), OpenApiMediaType {
+                schema: OpenApiSchemaRef::Reference {
+                    reference: "#/components/schemas/PathRoot".to_string()
+                },
+                example: None,
+            });
+            content
+        }),
+    }
+}
+
+fn create_path_root_schema() -> OpenApiSchema {
+    // Create the PathRoot schema with proper oneOf definition
+    OpenApiSchema {
+        schema_type: None,
+        description: Some("Specifies the root namespace for file operations. Supports three different modes for accessing different namespace contexts.".to_string()),
+        properties: None,
+        required: None,
+        all_of: Some(vec![
+            OpenApiSchemaRef::Inline(OpenApiSchema {
+                schema_type: Some("object".to_string()),
+                properties: {
+                    let mut props = IndexMap::new();
+                    props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
+                        schema_type: Some("string".to_string()),
+                        enum_values: Some(vec!["home".to_string(), "root".to_string(), "namespace_id".to_string()]),
+                        description: Some("The type of path root mode".to_string()),
+                        properties: None,
+                        required: None,
+                        all_of: None,
+                        items: None,
+                        format: None,
+                        min_length: None,
+                        max_length: None,
+                        minimum: None,
+                        maximum: None,
+                        nullable: None,
+                        discriminator: None,
+                    }));
+                    Some(props)
+                },
+                required: Some(vec![".tag".to_string()]),
+                description: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: Some(OpenApiDiscriminator {
+                    property_name: ".tag".to_string(),
+                    mapping: Some({
+                        let mut mapping = IndexMap::new();
+                        mapping.insert("home".to_string(), "#/components/schemas/PathRootHome".to_string());
+                        mapping.insert("root".to_string(), "#/components/schemas/PathRootRoot".to_string());
+                        mapping.insert("namespace_id".to_string(), "#/components/schemas/PathRootNamespace".to_string());
+                        mapping
+                    }),
+                }),
+            })
+        ]),
+        items: None,
+        enum_values: None,
+        format: None,
+        min_length: None,
+        max_length: None,
+        minimum: None,
+        maximum: None,
+        nullable: None,
+        discriminator: None,
+    }
+}
+
+fn create_path_root_home_schema() -> OpenApiSchema {
+    OpenApiSchema {
         schema_type: Some("object".to_string()),
+        description: Some("Home mode - roots operations to the user's home namespace".to_string()),
         properties: {
             let mut props = IndexMap::new();
             props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
                 schema_type: Some("string".to_string()),
                 enum_values: Some(vec!["home".to_string()]),
+                description: Some("Tag identifying this as home mode".to_string()),
                 properties: None,
                 required: None,
                 all_of: None,
                 items: None,
-                description: None,
                 format: None,
                 min_length: None,
                 max_length: None,
@@ -1400,7 +1489,6 @@ fn create_path_root_parameter() -> OpenApiParameter {
             Some(props)
         },
         required: Some(vec![".tag".to_string()]),
-        description: None,
         all_of: None,
         items: None,
         enum_values: None,
@@ -1411,20 +1499,23 @@ fn create_path_root_parameter() -> OpenApiParameter {
         maximum: None,
         nullable: None,
         discriminator: None,
-    };
-    
-    let root_schema = OpenApiSchema {
+    }
+}
+
+fn create_path_root_root_schema() -> OpenApiSchema {
+    OpenApiSchema {
         schema_type: Some("object".to_string()),
+        description: Some("Root mode - validates and roots operations to a specific root namespace".to_string()),
         properties: {
             let mut props = IndexMap::new();
             props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
                 schema_type: Some("string".to_string()),
                 enum_values: Some(vec!["root".to_string()]),
+                description: Some("Tag identifying this as root mode".to_string()),
                 properties: None,
                 required: None,
                 all_of: None,
                 items: None,
-                description: None,
                 format: None,
                 min_length: None,
                 max_length: None,
@@ -1435,7 +1526,7 @@ fn create_path_root_parameter() -> OpenApiParameter {
             }));
             props.insert("root".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
                 schema_type: Some("string".to_string()),
-                description: Some("The namespace ID to validate as root".to_string()),
+                description: Some("The namespace ID to validate and use as root. Must be a valid root namespace that the user has access to.".to_string()),
                 properties: None,
                 required: None,
                 all_of: None,
@@ -1452,7 +1543,6 @@ fn create_path_root_parameter() -> OpenApiParameter {
             Some(props)
         },
         required: Some(vec![".tag".to_string(), "root".to_string()]),
-        description: None,
         all_of: None,
         items: None,
         enum_values: None,
@@ -1463,20 +1553,23 @@ fn create_path_root_parameter() -> OpenApiParameter {
         maximum: None,
         nullable: None,
         discriminator: None,
-    };
-    
-    let namespace_schema = OpenApiSchema {
+    }
+}
+
+fn create_path_root_namespace_schema() -> OpenApiSchema {
+    OpenApiSchema {
         schema_type: Some("object".to_string()),
+        description: Some("Namespace mode - roots operations to any accessible namespace".to_string()),
         properties: {
             let mut props = IndexMap::new();
             props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
                 schema_type: Some("string".to_string()),
                 enum_values: Some(vec!["namespace_id".to_string()]),
+                description: Some("Tag identifying this as namespace mode".to_string()),
                 properties: None,
                 required: None,
                 all_of: None,
                 items: None,
-                description: None,
                 format: None,
                 min_length: None,
                 max_length: None,
@@ -1487,7 +1580,7 @@ fn create_path_root_parameter() -> OpenApiParameter {
             }));
             props.insert("namespace_id".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
                 schema_type: Some("string".to_string()),
-                description: Some("The namespace ID to root operations to".to_string()),
+                description: Some("The namespace ID to root operations to. Can be any namespace the user has access to.".to_string()),
                 properties: None,
                 required: None,
                 all_of: None,
@@ -1504,7 +1597,6 @@ fn create_path_root_parameter() -> OpenApiParameter {
             Some(props)
         },
         required: Some(vec![".tag".to_string(), "namespace_id".to_string()]),
-        description: None,
         all_of: None,
         items: None,
         enum_values: None,
@@ -1515,38 +1607,6 @@ fn create_path_root_parameter() -> OpenApiParameter {
         maximum: None,
         nullable: None,
         discriminator: None,
-    };
-    
-    // Create the oneOf schema combining all three modes
-    let path_root_schema = OpenApiSchema {
-        schema_type: None,
-        properties: None,
-        required: None,
-        all_of: None,
-        items: None,
-        enum_values: None,
-        description: Some("Path root mode specification".to_string()),
-        format: None,
-        min_length: None,
-        max_length: None,
-        minimum: None,
-        maximum: None,
-        nullable: None,
-        discriminator: None,
-    };
-    
-    content.insert("application/json".to_string(), OpenApiMediaType {
-        schema: OpenApiSchemaRef::Inline(path_root_schema),
-        example: None,
-    });
-    
-    OpenApiParameter {
-        name: "Dropbox-API-Path-Root".to_string(),
-        parameter_in: "header".to_string(),
-        description: "Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.\n\nSupports three modes:\n- Home mode: '{\"tag\": \"home\"}' - roots to user's home namespace\n- Root mode: '{\"tag\": \"root\", \"root\": \"namespace_id\"}' - validates and roots to specific root namespace\n- Namespace mode: '{\"tag\": \"namespace_id\", \"namespace_id\": \"namespace_id\"}' - roots to any accessible namespace\n\nEssential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.".to_string(),
-        required: false,
-        schema: None,
-        content: Some(content),
     }
 }
 
@@ -2354,6 +2414,12 @@ fn merge_namespaces_to_openapi_individual(namespaces: &[StoneNamespace], namespa
         }
     }
     
+    // Add Path-Root header schemas
+    schemas.insert("PathRoot".to_string(), create_path_root_schema());
+    schemas.insert("PathRootHome".to_string(), create_path_root_home_schema());
+    schemas.insert("PathRootRoot".to_string(), create_path_root_root_schema());
+    schemas.insert("PathRootNamespace".to_string(), create_path_root_namespace_schema());
+    
     // Collect all unique scopes from routes
     for namespace in namespaces {
         for route in &namespace.routes {
@@ -2516,6 +2582,12 @@ fn merge_namespaces_to_openapi_team(namespaces: &[StoneNamespace], namespace_map
             schemas.insert(name.clone(), schema);
         }
     }
+    
+    // Add Path-Root header schemas
+    schemas.insert("PathRoot".to_string(), create_path_root_schema());
+    schemas.insert("PathRootHome".to_string(), create_path_root_home_schema());
+    schemas.insert("PathRootRoot".to_string(), create_path_root_root_schema());
+    schemas.insert("PathRootNamespace".to_string(), create_path_root_namespace_schema());
     
     // Collect all unique scopes from routes
     for namespace in namespaces {
