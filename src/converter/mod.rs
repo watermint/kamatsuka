@@ -892,7 +892,7 @@ fn merge_namespaces_to_openapi(namespaces: &[StoneNamespace], namespace_map: &Ha
                 route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name))
             };
             
-            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, false)?;
+            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, false, &namespace.name)?;
             
             path_methods.insert("post".to_string(), operation);
             paths.insert(path, path_methods);
@@ -991,7 +991,8 @@ fn create_openapi_operation(
     select_admin_mode: Option<String>, 
     cloud_doc_auth: Option<bool>, 
     base_url: &str,
-    add_team_headers: bool
+    add_team_headers: bool,
+    namespace: &str
 ) -> Result<OpenApiOperation> {
     // Prepare parameters based on style
     let mut parameters = match style.as_deref() {
@@ -1049,30 +1050,36 @@ fn create_openapi_operation(
     
     // Add team admin headers if this is for team endpoints
     if add_team_headers {
-        // Add Dropbox-API-Select-User header
-        parameters.push(OpenApiParameter {
-            name: "Dropbox-API-Select-User".to_string(),
-            parameter_in: "header".to_string(),
-            description: "The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.".to_string(),
-            required: false,
-            schema: Some(OpenApiSchema {
-                schema_type: Some("string".to_string()),
-                description: Some("Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')".to_string()),
-                properties: None,
-                required: None,
-                all_of: None,
-                items: None,
-                enum_values: None,
-                format: None,
-                min_length: None,
-                max_length: None,
-                minimum: None,
-                maximum: None,
-                nullable: None,
-                discriminator: None,
-            }),
-            content: None,
-        });
+        // Determine if this endpoint should have Dropbox-API-Select-User header
+        // Endpoints with admin-mode "team_admin" should NOT have this header
+        let should_add_select_user = select_admin_mode.as_deref() != Some("team_admin");
+        
+        if should_add_select_user {
+            // Add Dropbox-API-Select-User header
+            parameters.push(OpenApiParameter {
+                name: "Dropbox-API-Select-User".to_string(),
+                parameter_in: "header".to_string(),
+                description: "The team member ID to act on behalf of. Used by team admins to perform operations as a specific team member.".to_string(),
+                required: false,
+                schema: Some(OpenApiSchema {
+                    schema_type: Some("string".to_string()),
+                    description: Some("Team member ID (e.g., 'dbmid:AAHhy7WsR0x-u4ZCqiDl5Fz5zvuL3kmspwU')".to_string()),
+                    properties: None,
+                    required: None,
+                    all_of: None,
+                    items: None,
+                    enum_values: None,
+                    format: None,
+                    min_length: None,
+                    max_length: None,
+                    minimum: None,
+                    maximum: None,
+                    nullable: None,
+                    discriminator: None,
+                }),
+                content: None,
+            });
+        }
         
         // Add Dropbox-API-Select-Admin header
         parameters.push(OpenApiParameter {
@@ -1098,6 +1105,11 @@ fn create_openapi_operation(
             }),
             content: None,
         });
+    }
+    
+    // Add Dropbox-API-Path-Root header for endpoints that work with files and content
+    if should_add_path_root_header(route, namespace) {
+        parameters.push(create_path_root_parameter());
     }
     
     // Prepare response headers for download-style endpoints
@@ -1325,6 +1337,217 @@ fn create_openapi_operation(
     };
     
     Ok(operation)
+}
+
+fn should_add_path_root_header(route: &StoneRoute, namespace: &str) -> bool {
+    // Determine if an endpoint should have the Dropbox-API-Path-Root header.
+    // This includes file operations and sharing operations that work with content.
+    
+    // Namespaces that work with content and paths
+    let file_namespaces = [
+        "files",
+        "sharing",
+        "file_properties",
+    ];
+    
+    // Some endpoints that don't need path root (mostly metadata-only operations)
+    let excluded_patterns = [
+        "properties/template/",  // Template operations don't need path root
+        "check_",                // Job status checks don't need path root
+        "list_received_files",   // Listing received files doesn't need path root
+    ];
+    
+    // First check if this is a relevant namespace
+    if !file_namespaces.contains(&namespace) {
+        return false;
+    }
+    
+    // Check if route name matches any excluded pattern
+    for pattern in &excluded_patterns {
+        if route.name.starts_with(pattern) {
+            return false;
+        }
+    }
+    
+    true
+}
+
+fn create_path_root_parameter() -> OpenApiParameter {
+    // Create the Dropbox-API-Path-Root parameter with proper schema definition
+    let mut content = IndexMap::new();
+    
+    // Create the oneOf schema for the three path root modes
+    let home_schema = OpenApiSchema {
+        schema_type: Some("object".to_string()),
+        properties: {
+            let mut props = IndexMap::new();
+            props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                enum_values: Some(vec!["home".to_string()]),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                description: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }));
+            Some(props)
+        },
+        required: Some(vec![".tag".to_string()]),
+        description: None,
+        all_of: None,
+        items: None,
+        enum_values: None,
+        format: None,
+        min_length: None,
+        max_length: None,
+        minimum: None,
+        maximum: None,
+        nullable: None,
+        discriminator: None,
+    };
+    
+    let root_schema = OpenApiSchema {
+        schema_type: Some("object".to_string()),
+        properties: {
+            let mut props = IndexMap::new();
+            props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                enum_values: Some(vec!["root".to_string()]),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                description: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }));
+            props.insert("root".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                description: Some("The namespace ID to validate as root".to_string()),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }));
+            Some(props)
+        },
+        required: Some(vec![".tag".to_string(), "root".to_string()]),
+        description: None,
+        all_of: None,
+        items: None,
+        enum_values: None,
+        format: None,
+        min_length: None,
+        max_length: None,
+        minimum: None,
+        maximum: None,
+        nullable: None,
+        discriminator: None,
+    };
+    
+    let namespace_schema = OpenApiSchema {
+        schema_type: Some("object".to_string()),
+        properties: {
+            let mut props = IndexMap::new();
+            props.insert(".tag".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                enum_values: Some(vec!["namespace_id".to_string()]),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                description: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }));
+            props.insert("namespace_id".to_string(), OpenApiSchemaRef::Inline(OpenApiSchema {
+                schema_type: Some("string".to_string()),
+                description: Some("The namespace ID to root operations to".to_string()),
+                properties: None,
+                required: None,
+                all_of: None,
+                items: None,
+                enum_values: None,
+                format: None,
+                min_length: None,
+                max_length: None,
+                minimum: None,
+                maximum: None,
+                nullable: None,
+                discriminator: None,
+            }));
+            Some(props)
+        },
+        required: Some(vec![".tag".to_string(), "namespace_id".to_string()]),
+        description: None,
+        all_of: None,
+        items: None,
+        enum_values: None,
+        format: None,
+        min_length: None,
+        max_length: None,
+        minimum: None,
+        maximum: None,
+        nullable: None,
+        discriminator: None,
+    };
+    
+    // Create the oneOf schema combining all three modes
+    let path_root_schema = OpenApiSchema {
+        schema_type: None,
+        properties: None,
+        required: None,
+        all_of: None,
+        items: None,
+        enum_values: None,
+        description: Some("Path root mode specification".to_string()),
+        format: None,
+        min_length: None,
+        max_length: None,
+        minimum: None,
+        maximum: None,
+        nullable: None,
+        discriminator: None,
+    };
+    
+    content.insert("application/json".to_string(), OpenApiMediaType {
+        schema: OpenApiSchemaRef::Inline(path_root_schema),
+        example: None,
+    });
+    
+    OpenApiParameter {
+        name: "Dropbox-API-Path-Root".to_string(),
+        parameter_in: "header".to_string(),
+        description: "Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.\n\nSupports three modes:\n- Home mode: '{\"tag\": \"home\"}' - roots to user's home namespace\n- Root mode: '{\"tag\": \"root\", \"root\": \"namespace_id\"}' - validates and roots to specific root namespace\n- Namespace mode: '{\"tag\": \"namespace_id\", \"namespace_id\": \"namespace_id\"}' - roots to any accessible namespace\n\nEssential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.".to_string(),
+        required: false,
+        schema: None,
+        content: Some(content),
+    }
 }
 
 fn resolve_type_reference(type_str: &str, namespace_map: &HashMap<String, StoneNamespace>) -> String {
@@ -2106,7 +2329,7 @@ fn merge_namespaces_to_openapi_individual(namespaces: &[StoneNamespace], namespa
                 route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name))
             };
             
-            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, false)?;
+            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, false, &namespace.name)?;
             
             path_methods.insert("post".to_string(), operation);
             paths.insert(path, path_methods);
@@ -2146,7 +2369,7 @@ fn merge_namespaces_to_openapi_individual(namespaces: &[StoneNamespace], namespa
         openapi: "3.0.3".to_string(),
         info: OpenApiInfo {
             title: "Dropbox API - Individual".to_string(),
-            description: Some("Dropbox API v2 for individual Dropbox accounts. This specification contains only user endpoints that can be called from individual Dropbox accounts without team admin headers.".to_string()),
+            description: Some("Dropbox API v2 for individual Dropbox accounts. This specification contains only user endpoints that can be called from individual Dropbox accounts without team admin headers.\n\nMany endpoints support the Dropbox-API-Path-Root header for specifying the root namespace for operations, which allows accessing different namespaces within a user's Dropbox account.".to_string()),
             version: "2.0".to_string(),
             contact: OpenApiContact {
                 name: "Dropbox API".to_string(),
@@ -2236,18 +2459,40 @@ fn merge_namespaces_to_openapi_team(namespaces: &[StoneNamespace], namespace_map
                 if is_business_namespace {
                     format!("{} {} This is a business endpoint that requires team admin authentication.", base_desc, style_desc)
                 } else {
-                    format!("{} {} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.", base_desc, style_desc)
+                    // Handle admin mode specific descriptions
+                    match select_admin_mode.as_deref() {
+                        Some("team_admin") => {
+                            format!("{} {} This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.", base_desc, style_desc)
+                        },
+                        Some("whole_team") => {
+                            format!("{} {} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.", base_desc, style_desc)
+                        },
+                        _ => {
+                            format!("{} {} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.", base_desc, style_desc)
+                        }
+                    }
                 }
             } else {
                 let base_desc = route.description.clone().unwrap_or_else(|| format!("Execute {}", route.name));
                 if is_business_namespace {
                     format!("{} This is a business endpoint that requires team admin authentication.", base_desc)
                 } else {
-                    format!("{} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.", base_desc)
+                    // Handle admin mode specific descriptions
+                    match select_admin_mode.as_deref() {
+                        Some("team_admin") => {
+                            format!("{} This user endpoint can be called by team admins using the Dropbox-API-Select-Admin header. Team Admin mode: can access team folders and team spaces but not team members' home namespaces.", base_desc)
+                        },
+                        Some("whole_team") => {
+                            format!("{} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers. Whole Team mode: when using Dropbox-API-Select-Admin, can access team folders, team spaces, and team members' home namespaces.", base_desc)
+                        },
+                        _ => {
+                            format!("{} This user endpoint can be called by team admins using Dropbox-API-Select-User or Dropbox-API-Select-Admin headers.", base_desc)
+                        }
+                    }
                 }
             };
             
-            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, !is_business_namespace)?;
+            let operation = create_openapi_operation(route, &description, &host, &auth, &style, is_preview, allow_app_folder, select_admin_mode, cloud_doc_auth, base_url, !is_business_namespace, &namespace.name)?;
             
             path_methods.insert("post".to_string(), operation);
             paths.insert(path, path_methods);
@@ -2284,7 +2529,7 @@ fn merge_namespaces_to_openapi_team(namespaces: &[StoneNamespace], namespace_map
         openapi: "3.0.3".to_string(),
         info: OpenApiInfo {
             title: "Dropbox API - Team".to_string(),
-            description: Some("Dropbox API v2 for team admins. This specification contains both user endpoints (which can be called with Dropbox-API-Select-User or Dropbox-API-Select-Admin headers) and business endpoints (which require team admin authentication).".to_string()),
+            description: Some("Dropbox API v2 for team admins. This specification contains both user endpoints and business endpoints.\n\nUser endpoints support two admin authentication modes:\n- **Whole Team mode**: Endpoints support both Dropbox-API-Select-User and Dropbox-API-Select-Admin headers. When using Dropbox-API-Select-Admin, admins can access team folders, team spaces, and team members' home namespaces.\n- **Team Admin mode**: Endpoints only support Dropbox-API-Select-Admin header. Admins can access team folders and team spaces but not team members' home namespaces.\n\nBusiness endpoints require team admin authentication without additional headers.\n\nMany endpoints also support the Dropbox-API-Path-Root header for specifying the root namespace for operations, which is essential for accessing team spaces and managing team content.".to_string()),
             version: "2.0".to_string(),
             contact: OpenApiContact {
                 name: "Dropbox API".to_string(),
