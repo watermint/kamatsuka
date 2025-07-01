@@ -1,7 +1,10 @@
 openapi: 3.0.3
 info:
   title: Dropbox API - Individual
-  description: Dropbox API v2 for individual Dropbox accounts. This specification contains only user endpoints that can be called from individual Dropbox accounts without team admin headers.
+  description: |-
+    Dropbox API v2 for individual Dropbox accounts. This specification contains only user endpoints that can be called from individual Dropbox accounts without team admin headers.
+
+    Many endpoints support the Dropbox-API-Path-Root header for specifying the root namespace for operations, which allows accessing different namespaces within a user's Dropbox account.
   version: '2.0'
   contact:
     name: Dropbox API
@@ -236,6 +239,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddPropertiesError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Add property groups to a Dropbox file. See :route:`templates/add_for_user` or
             :route:`templates/add_for_team` to create new templates.
@@ -270,6 +290,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InvalidPropertyGroupError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Overwrite property groups associated with a file. This endpoint should be used
             instead of :route:`properties/update` when property groups are being updated via a
@@ -307,6 +344,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdatePropertiesError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Add, update or remove properties associated with the supplied file and templates.
             This endpoint should be used instead of :route:`properties/overwrite` when property groups
@@ -345,6 +399,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemovePropertiesError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Permanently removes the specified property group from the file. To remove specific property field key
             value pairs, see :route:`properties/update`.
@@ -380,6 +451,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifyTemplateError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Add a template associated with a user. See :route:`properties/add` to add properties to a file. This
             endpoint can't be called on a team member or admin's behalf.
@@ -409,6 +497,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Get the schema for a specified template. This endpoint can't be called on a team member or admin's behalf.
   /file_properties/templates/update_for_user:
     post:
@@ -439,6 +544,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifyTemplateError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Update a template associated with a user. This route can update the template name,
             the template description and add optional properties to templates. This endpoint can't
@@ -466,6 +588,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get the template identifiers for a team. To get the schema of
             each template use :route:`templates/get_for_user`. This endpoint can't be
@@ -499,6 +638,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemplateError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Permanently removes the specified template created from :route:`templates/add_for_user`.
             All properties associated with the template will also be removed. This action
@@ -529,6 +685,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PropertiesSearchError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Search across property templates for particular property field values.
   /file_properties/properties/search/continue:
     post:
@@ -558,6 +731,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PropertiesSearchContinueError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Once a cursor has been retrieved from :route:`properties/search`, use this to paginate through all
             search results.
@@ -843,6 +1033,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddTagError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Add a tag to an item. A tag is a string. The strings are automatically converted to lowercase letters. No more than 20 tags can be added to a given item.
       x-stone-auth: user
       x-stone-preview: true
@@ -872,6 +1079,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemoveTagError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Remove a tag from an item.
       x-stone-auth: user
       x-stone-preview: true
@@ -901,6 +1125,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseTagError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Get list of tags assigned to items.
       x-stone-auth: user
       x-stone-preview: true
@@ -934,6 +1175,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AlphaGetMetadataError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns the metadata for a file or folder. This is an alpha endpoint
             compatible with the properties API.
@@ -977,6 +1235,23 @@ paths:
       servers:
       - url: https://notify.dropboxnotify.com/2
         description: Dropbox Notify Server
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         A longpoll endpoint to wait for changes on an account. In conjunction with
             :route:`list_folder/continue`, this call gives you a low-latency way to
@@ -1038,6 +1313,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Starts returning the contents of a folder. If the result's :field:`ListFolderResult.has_more`
             field is :val:`true`, call :route:`list_folder/continue` with the returned
@@ -1095,6 +1387,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderContinueError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Once a cursor has been retrieved from :route:`list_folder`, use this to paginate through all
             files and retrieve updates to the folder, following the same rules as documented for
@@ -1132,6 +1441,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         A way to quickly get a cursor for the folder's state. Unlike :route:`list_folder`,
             :route:`list_folder/get_latest_cursor` doesn't return any entries. This endpoint is for app
@@ -1180,6 +1506,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DownloadArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: 'Download a file from a user''s Dropbox. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.'
       x-stone-style: download
       x-stone-allow-app-folder: true
@@ -1231,6 +1573,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DownloadZipArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB
             in size and any single file within must be less than 4 GB in size. The resulting zip must have
@@ -1283,6 +1641,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ExportArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Export a file from a user's Dropbox. This route only supports exporting files that cannot be downloaded directly
              and whose :field:`ExportResult.file_metadata` has :field:`ExportInfo.export_as` populated. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.
@@ -1316,6 +1690,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadSessionStartBatchResult'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         This route starts batch of upload_sessions. Please refer to `upload_session/start` usage.
 
@@ -1399,6 +1790,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadSessionStartArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Upload sessions allow you to upload a single file in one or more
             requests, for example where the size of the file is greater than 150
@@ -1484,6 +1891,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadSessionCursor'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Append more data to an upload session.
 
@@ -1544,6 +1967,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadSessionFinishArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Finish an upload session and save the uploaded data to the given file
             path.
@@ -1601,6 +2040,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Create a new file with the contents provided in the request. Note that the
             behavior of this alpha endpoint is unstable and subject to change.
@@ -1647,6 +2102,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadSessionFinishBatchResult'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         This route helps you commit many files at once into a user's Dropbox. Use
             :route:`upload_session/start` and :route:`upload_session/append:2` to
@@ -1695,6 +2167,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns the status of an asynchronous job for :route:`upload_session/finish_batch`. If
             success, it returns list of result for each entry.
@@ -1733,6 +2222,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Searches for files and folders.
 
@@ -1775,6 +2281,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Fetches the next page of search results returned from :route:`search:2`.
 
@@ -1810,6 +2333,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Create a folder at a given path.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
@@ -1840,6 +2380,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateFolderBatchLaunch'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Create multiple folders at once.
 
@@ -1878,6 +2435,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns the status of an asynchronous job for :route:`create_folder_batch`. If
             success, it returns list of result for each entry.
@@ -1916,6 +2490,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Delete the file or folder at a given path.
 
@@ -1951,6 +2542,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteBatchLaunch'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Delete multiple files/folders at once.
 
@@ -1987,6 +2595,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns the status of an asynchronous job for :route:`delete_batch`. If
             success, it returns list of result for each entry.
@@ -2026,6 +2651,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Permanently delete the file or folder at a given path
             (see https://www.dropbox.com/en/help/40).
@@ -2066,6 +2708,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Copy a file or folder to a different location in the user's Dropbox.
 
@@ -2097,6 +2756,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationBatchLaunch'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Copy multiple files or folders to different locations at once in the
             user's Dropbox.
@@ -2133,6 +2809,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns the status of an asynchronous job for :route:`copy_batch:1`. If
             success, it returns list of results for each entry.
@@ -2167,6 +2860,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Move a file or folder to a different location in the user's Dropbox.
 
@@ -2198,6 +2908,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocationBatchLaunch'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Move multiple files or folders to different locations at once in the
             user's Dropbox.
@@ -2234,6 +2961,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns the status of an asynchronous job for :route:`move_batch:1`. If
             success, it returns list of results for each entry.
@@ -2285,6 +3029,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ThumbnailArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get a thumbnail for an image.
 
@@ -2328,6 +3088,23 @@ paths:
       servers:
       - url: https://content.dropboxcontent.com/2
         description: Dropbox Content Server
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get thumbnails for a list of images. We allow up to 25 thumbnails in a single batch.
 
@@ -2382,6 +3159,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ThumbnailV2Arg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get a thumbnail for an image.
 
@@ -2441,6 +3234,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PreviewArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get a preview for a file.
 
@@ -2488,6 +3297,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListRevisionsError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns revisions for files based on a file path or a file id. The file path or file id is
             identified from the latest file entry at the given file path or id. This end point allows your
@@ -2526,6 +3352,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RestoreError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Restore a specific revision of a file to the given path.
       x-stone-allow-app-folder: true
       x-stone-select-admin-mode: team_admin
@@ -2558,6 +3401,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetTemporaryLinkError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get a temporary link to stream content of a file. This link will expire in four hours and
             afterwards you will get 410 Gone. This URL should not be used to display content directly
@@ -2583,6 +3443,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetTemporaryUploadLinkResult'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: "Get a one-time use temporary upload link to upload a file to a Dropbox location.\n\n\n    This endpoint acts as a delayed :route:`upload`. The returned temporary upload link may be used\n    to make a POST request with the data to be uploaded. The upload will then be perfomed with the\n    :type:`CommitInfo` previously provided to :route:`get_temporary_upload_link` but evaluated only\n    upon consumption. Hence, errors stemming from invalid :type:`CommitInfo` with respect to the\n    state of the user's Dropbox will only be communicated at consumption time. Additionally, these\n    errors are surfaced as generic HTTP 409 Conflict responses, potentially hiding issue details.\n    The maximum temporary upload link duration is 4 hours. Upon consumption or expiration,\n    a new link will have to be generated. Multiple links may exist for a specific upload path\n    at any given time.\n\n\n    The POST request on the temporary upload link must have its Content-Type\n    set to \"application/octet-stream\".\n\n\n    Example temporary upload link consumption request:\n\n\n    curl -X POST https://content.dropboxapi.com/apitul/1/bNi2uIYF51cVBND\n\n    --header \"Content-Type: application/octet-stream\"\n\n    --data-binary @local_file.txt\n\n\n    A successful temporary upload link consumption request returns the content hash\n    of the uploaded data in JSON format.\n\n\n    Example successful temporary upload link consumption response:\n\n    {\"content-hash\": \"599d71033d700ac892a0e48fa61b125d2f5994\"}\n\n\n    An unsuccessful temporary upload link consumption request returns any of the following status\n    codes:\n\n\n    HTTP 400 Bad Request: Content-Type is not one of\n    application/octet-stream and text/plain or request is invalid.\n\n    HTTP 409 Conflict: The temporary upload link does not exist or is currently unavailable,\n    the upload failed, or another error happened.\n\n    HTTP 410 Gone: The temporary upload link is expired or consumed.\n\n\n    Example unsuccessful temporary upload link consumption response:\n\n    Temporary upload link has been recently consumed.\n    "
       x-stone-allow-app-folder: true
   /files/copy_reference/get:
@@ -2614,6 +3491,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCopyReferenceError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get a copy reference to a file or folder. This reference string can be used to
             save that file or folder to another user's Dropbox by passing it to
@@ -2645,6 +3539,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SaveCopyReferenceError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Save a copy reference returned by :route:`copy_reference/get` to the user's Dropbox.
       x-stone-allow-app-folder: true
   /files/save_url:
@@ -2680,6 +3591,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SaveUrlError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Save the data from a specified URL into a file in user's Dropbox.
 
@@ -2715,6 +3643,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/asyncPollError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Check the status of a :route:`save_url` job.
       x-stone-allow-app-folder: true
   /files/properties/add:
@@ -2743,6 +3688,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesAddPropertiesError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Execute properties/add
   /files/properties/overwrite:
     post:
@@ -2770,6 +3732,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesInvalidPropertyGroupError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Execute properties/overwrite
   /files/properties/update:
     post:
@@ -2797,6 +3776,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesUpdatePropertiesError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Execute properties/update
   /files/properties/remove:
     post:
@@ -2824,6 +3820,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/filepropertiesRemovePropertiesError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Execute properties/remove
   /files/properties/template/get:
     post:
@@ -2899,6 +3912,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LockFileError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: "\n    Lock the files at the given paths. A locked file will be writable only by the lock holder.\n    A successful response indicates that the file has been locked. Returns a list of the\n    locked file paths and their metadata after this operation.\n    "
   /files/unlock_file_batch:
     post:
@@ -2926,6 +3956,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LockFileError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: "\n    Unlock the files at the given paths. A locked file can only be unlocked by the lock holder\n    or, if a business account, a team admin. A successful response indicates that the file has\n    been unlocked. Returns a list of the unlocked file paths and their metadata after\n    this operation.\n    "
       x-stone-select-admin-mode: whole_team
   /files/get_file_lock_batch:
@@ -2954,6 +4001,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LockFileError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: "\n    Return the lock metadata for the given list of paths.\n    "
   /files/paper/create:
     post:
@@ -2991,6 +4055,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PaperCreateArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |2-
 
             Creates a new Paper doc with the provided content.
@@ -3033,6 +4113,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PaperUpdateArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |2-
 
             Updates an existing Paper doc with the provided content.
@@ -3825,6 +4921,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharedLinkError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Get the shared link's metadata.
       x-stone-auth: app, user
       x-stone-allow-app-folder: true
@@ -3863,6 +4976,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetSharedLinksError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Returns a list of :type:`LinkMetadata` objects for this user,
             including collection links.
@@ -3907,6 +5037,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModifySharedLinkSettingsError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Modify the shared link's settings.
 
@@ -3950,6 +5097,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateSharedLinkError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Create a shared link.
 
@@ -3993,6 +5157,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeSharedLinkError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Revoke a shared link.
 
@@ -4043,6 +5224,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GetSharedLinkFileArg'
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: 'Download the shared link''s file from a user''s Dropbox. Download-style endpoint: Request has JSON parameters in Dropbox-API-Arg header. Response has JSON metadata in Dropbox-API-Result header and binary data in body.'
       x-stone-style: download
       x-stone-allow-app-folder: true
@@ -4072,6 +5269,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddFileMemberError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Adds specified members to a file.
       x-stone-select-admin-mode: team_admin
   /sharing/update_file_member:
@@ -4100,6 +5314,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FileMemberActionError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Changes a member's access on a shared file.
       x-stone-select-admin-mode: team_admin
   /sharing/get_file_metadata:
@@ -4128,6 +5359,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetFileMetadataError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Returns shared file metadata.
       x-stone-select-admin-mode: team_admin
   /sharing/get_file_metadata/batch:
@@ -4156,6 +5404,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingUserError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Returns shared file metadata.
   /sharing/list_file_members:
     post:
@@ -4185,6 +5450,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFileMembersError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Use to obtain the members who have been invited to a file, both inherited
             and uninherited members.
@@ -4222,6 +5504,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharingUserError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Get members of multiple files at once. The arguments
             to this route are more limited, and the limit on query result size per file
@@ -4259,6 +5558,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFileMembersContinueError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Once a cursor has been retrieved from :route:`list_file_members` or
             :route:`list_file_members/batch`, use this to paginate through all shared
@@ -4352,6 +5668,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemoveFileMemberError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Removes a specified member from the file.
       x-stone-select-admin-mode: team_admin
   /sharing/relinquish_file_membership:
@@ -4383,6 +5716,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelinquishFileMembershipError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         The current user relinquishes their membership in the designated file.
             Note that the current user may still have inherited access to this file
@@ -4414,6 +5764,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnshareFileError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Remove all members from this file. Does not remove inherited members.
       x-stone-select-admin-mode: team_admin
   /sharing/list_folders:
@@ -4436,6 +5803,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersResult'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Return the list of all shared folders the current user has access to.
   /sharing/list_folders/continue:
     post:
@@ -4466,6 +5850,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersContinueError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Once a cursor has been retrieved from :route:`list_folders`, use this to paginate through all
             shared folders. The cursor must come from a previous call to :route:`list_folders` or
@@ -4490,6 +5891,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersResult'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Return the list of all shared folders the current user can mount or unmount.
   /sharing/list_mountable_folders/continue:
     post:
@@ -4520,6 +5938,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFoldersContinueError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Once a cursor has been retrieved from :route:`list_mountable_folders`, use this to paginate through all
             mountable shared folders. The cursor must come from a previous call to :route:`list_mountable_folders` or
@@ -4550,6 +5985,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharedFolderAccessError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Returns shared folder metadata by its folder ID.
       x-stone-select-admin-mode: whole_team
   /sharing/list_folder_members:
@@ -4578,6 +6030,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SharedFolderAccessError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: Returns shared folder membership by its folder ID.
       x-stone-select-admin-mode: whole_team
   /sharing/list_folder_members/continue:
@@ -4608,6 +6077,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListFolderMembersContinueError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Once a cursor has been retrieved from :route:`list_folder_members`, use this to paginate
             through all shared folder members.
@@ -4647,6 +6133,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ShareFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Share a folder with collaborators.
 
@@ -4744,6 +6247,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnshareFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Allows a shared folder owner to unshare the folder.
 
@@ -4779,6 +6299,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransferFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Transfer ownership of a shared folder to a member of the shared folder.
 
@@ -4813,6 +6350,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateFolderPolicyError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Update the sharing policies for a shared folder.
 
@@ -4849,6 +6403,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddFolderMemberError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Allows an owner or editor (if the ACL update policy allows) of a shared
             folder to add another member.
@@ -4884,6 +6455,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RemoveFolderMemberError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Allows an owner or editor (if the ACL update policy allows) of a shared
             folder to remove another member.
@@ -4944,6 +6532,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateFolderMemberError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Allows an owner or editor of a shared folder to update another member's
             permissions.
@@ -4978,6 +6583,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MountFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         The current user mounts the designated folder.
 
@@ -5011,6 +6633,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnmountFolderError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         The current user unmounts the designated folder. They can re-mount the
             folder at a later time using :route:`mount_folder`.
@@ -5047,6 +6686,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelinquishFolderMembershipError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         The current user relinquishes their membership in the designated shared
             folder and will no longer have access to the folder.  A folder owner cannot
@@ -5085,6 +6741,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SetAccessInheritanceError'
+      parameters:
+      - name: Dropbox-API-Path-Root
+        in: header
+        description: |-
+          Specifies the root namespace for the operation. This allows operations to be performed relative to a specific namespace instead of the default user namespace.
+
+          Supports three modes:
+          - Home mode: '{"tag": "home"}' - roots to user's home namespace
+          - Root mode: '{"tag": "root", "root": "namespace_id"}' - validates and roots to specific root namespace
+          - Namespace mode: '{"tag": "namespace_id", "namespace_id": "namespace_id"}' - roots to any accessible namespace
+
+          Essential for accessing team spaces and managing team content. See Path Root Header Modes documentation for details.
+        required: false
+        content:
+          application/json:
+            schema:
+              description: Path root mode specification
       description: |-
         Change the inheritance policy of an existing Shared Folder. Only permitted for shared folders in a shared team root.
 
@@ -5552,35 +7225,35 @@ components:
         propertyName: .tag
         mapping:
           invalid_root: '#/components/schemas/RootInfo'
+    SharedFolderId:
+      allOf:
+      - $ref: '#/components/schemas/NamespaceId'
+    SessionId:
+      type: string
+    EmailAddress:
+      type: string
+      maxLength: 255
+    DisplayName:
+      type: string
     Date:
       type: string
       format: date-time
-    DisplayName:
-      type: string
-    DisplayNameLegacy:
-      type: string
     DropboxTimestamp:
       type: string
       format: date-time
+    NamePart:
+      type: string
+      minLength: 1
+      maxLength: 100
     OptionalNamePart:
       type: string
       maxLength: 100
     NamespaceId:
       type: string
-    NamePart:
-      type: string
-      minLength: 1
-      maxLength: 100
-    EmailAddress:
-      type: string
-      maxLength: 255
-    SharedFolderId:
-      allOf:
-      - $ref: '#/components/schemas/NamespaceId'
     LanguageCode:
       type: string
       minLength: 2
-    SessionId:
+    DisplayNameLegacy:
       type: string
     DeleteManualContactsArg:
       type: object
@@ -6348,12 +8021,12 @@ components:
       required:
       - .tag
       description: There was an error deleting all closed file requests.
-    FileRequestValidationError:
-      type: string
-      nullable: true
     FileRequestId:
       type: string
       minLength: 1
+    FileRequestValidationError:
+      type: string
+      nullable: true
     UserGeneratedTag:
       type: object
       properties:
@@ -8864,44 +10537,44 @@ components:
         propertyName: .tag
         mapping:
           path: '#/components/schemas/LookupError'
-    PathR:
-      type: string
     CopyBatchArg:
       allOf:
       - $ref: '#/components/schemas/RelocationBatchArgBase'
-    SharedLinkUrl:
+    SearchV2Cursor:
       type: string
+      minLength: 1
+    PathR:
+      type: string
+    ListFolderCursor:
+      type: string
+      minLength: 1
+    Rev:
+      allOf:
+      - $ref: '#/components/schemas/Rev'
+    MalformedPathError:
+      type: string
+      nullable: true
     Sha256HexHash:
       type: string
       minLength: 64
       maxLength: 64
-    SearchV2Cursor:
+    WritePathOrId:
       type: string
-      minLength: 1
+    WritePath:
+      type: string
+    ReadPath:
+      allOf:
+      - $ref: '#/components/schemas/ReadPath'
     PathROrId:
       type: string
-    MalformedPathError:
-      type: string
-      nullable: true
-    WritePathOrId:
+    SharedLinkUrl:
       type: string
     FileId:
       type: string
       minLength: 4
-    ReadPath:
-      allOf:
-      - $ref: '#/components/schemas/ReadPath'
-    Rev:
-      allOf:
-      - $ref: '#/components/schemas/Rev'
-    WritePath:
-      type: string
     Path:
       allOf:
       - $ref: '#/components/schemas/Path'
-    ListFolderCursor:
-      type: string
-      minLength: 1
     UserInfoArgs:
       type: object
       properties: {}
